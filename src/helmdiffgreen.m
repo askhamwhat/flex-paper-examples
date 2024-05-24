@@ -75,7 +75,7 @@ rm5 = rm1.*rm4;
 
 % get value and r derivatives
       
-[g0,g1,g2,g3,g4] = diff_h0log_and_rders(k,r,r2logrfac);
+[g0,g1,g21,g3,g4] = diff_h0log_and_rders(k,r,r2logrfac);
 
 %     evaluate potential and derivatives
 
@@ -87,49 +87,57 @@ if nargout > 1
     grad(:,:,2) = dy.*g1.*rm1;
 end
 if nargout > 2
-    hess(:,:,1) = dx2.*g2.*rm2+g1.*(1.*rm1-dx2.*rm3);
-    hess(:,:,2) = dx.*dy.*(g2.*rm2-g1.*rm3);
-    hess(:,:,3) = dy2.*g2.*rm2+g1.*(1.*rm1-dy2.*rm3);
+    hess(:,:,1) = dx2.*g21.*rm2+g1.*rm1;
+    hess(:,:,2) = dx.*dy.*g21.*rm2;
+    hess(:,:,3) = dy2.*g21.*rm2+g1.*rm1;
 end
 if nargout > 3
-    der3(:,:,1) = (dx3.*g3+3*dy2.*dx.*(g2.*rm1-g1.*rm2)).*rm3;
-    der3(:,:,2) = dx2.*dy.*(g3.*rm3-3*(g2.*rm4-g1.*rm5)) + ...
-             dy.*(g2.*rm2-g1.*rm3);
-    der3(:,:,3) = dx.*dy2.*(g3.*rm3-3*(g2.*rm4-g1.*rm5)) + ...
-             dx.*(g2.*rm2-g1.*rm3);
-    der3(:,:,4) = (dy3.*g3+3*dx2.*dy.*(g2.*rm1-g1.*rm2)).*rm3;
+    der3(:,:,1) = (dx3.*g3+3*dy2.*dx.*g21.*rm1).*rm3;
+    der3(:,:,2) = dx2.*dy.*(g3.*rm3-3*g21.*rm4) + ...
+             dy.*g21.*rm2;
+    der3(:,:,3) = dx.*dy2.*(g3.*rm3-3*g21.*rm4) + ...
+             dx.*g21.*rm2;
+    der3(:,:,4) = (dy3.*g3+3*dx2.*dy.*g21.*rm1).*rm3;
 end
 
 if nargout > 4
-    der4(:,:,1) = (dx4.*(g4-6*g3.*rm1+15*(g2.*rm2-g1.*rm3))).*rm4 + ...
-             (6*dx2.*(g3-3*(g2.*rm1-g1.*rm2))).*rm3 + ...
-             (3*(g2-g1.*rm1)).*rm2;
-    der4(:,:,2) = (dx3.*dy.*(g4-6*g3.*rm1+15*(g2.*rm2-g1.*rm3))).*rm4 + ...
-             (3*dx.*dy.*(g3-3*(g2.*rm1-g1.*rm2))).*rm3;
-    der4(:,:,3) = dx2.*dy2.*(g4-6*g3.*rm1+15*g2.*rm2-15*g1.*rm3).*rm4 + ...
-             g3.*rm1 - 2*g2.*rm2 + 2*g1.*rm3;
-    der4(:,:,4) = dx.*dy3.*(g4-6*g3.*rm1+15*(g2.*rm2-g1.*rm3)).*rm4 + ...
-             3*dx.*dy.*(g3-3*(g2.*rm1-g1.*rm2)).*rm3;
-    der4(:,:,5) = dy4.*(g4-6*g3.*rm1+15*(g2.*rm2-g1.*rm3)).*rm4 + ...
-             6*dy2.*(g3-3*(g2.*rm1-g1.*rm2)).*rm3 + ...
-             3*(g2-g1.*rm1).*rm2;
+    der4(:,:,1) = (dx4.*(g4-6*g3.*rm1+15*g21.*rm2)).*rm4 + ...
+             (6*dx2.*(g3-3*g21.*rm1)).*rm3 + ...
+             3*g21.*rm2;
+    der4(:,:,2) = (dx3.*dy.*(g4-6*g3.*rm1+15*g21.*rm2)).*rm4 + ...
+             (3*dx.*dy.*(g3-3*g21.*rm1)).*rm3;
+    der4(:,:,3) = dx2.*dy2.*(g4-6*g3.*rm1+15*g21.*rm2).*rm4 + ...
+             g3.*rm1 - 2*g21.*rm2;
+    der4(:,:,4) = dx.*dy3.*(g4-6*g3.*rm1+15*g21.*rm2).*rm4 + ...
+             3*dx.*dy.*(g3-3*g21.*rm1).*rm3;
+    der4(:,:,5) = dy4.*(g4-6*g3.*rm1+15*g21.*rm2).*rm4 + ...
+             6*dy2.*(g3-3*g21.*rm1).*rm3 + ...
+             3*g21.*rm2;
 end
 
 end
 
-function [g0,g1,g2,g3,g4] = diff_h0log_and_rders(k,r,r2logrfac)
+function [g0,g1,g21,g3,g4] = diff_h0log_and_rders(k,r,r2logrfac)
+% g0 = g
+% g1 = g'
+% g21 = g'' - g'/r
+%
+% maybe later:
+% g321 = g''' - 3*g''/r + 3g'/r^2
+% g4321 = g'''' - 6*g'''/r + 15*g''/r^2 - 15*g'/r^3
 
 g0 = zeros(size(r));
 g1 = zeros(size(r));
-g2 = zeros(size(r));
 g3 = zeros(size(r));
 g4 = zeros(size(r));
+g21 = zeros(size(r));
 
 io4 = 1i*0.25;
 o2p = 1/(2*pi);
 
 isus = abs(k)*r < 1;
 %isus = false(size(r));
+%isus = true(size(r));
 
 % straightforward formulas for sufficiently large
 
@@ -145,11 +153,14 @@ rm2 = rm1.*rm1;
 rm3 = rm1.*rm2;
 rm4 = rm1.*rm3;
 
-g0(~isus) = io4*h0 + o2p*log(rnot);
-g1(~isus) = -k*io4*h1 + o2p*rm1;
-g2(~isus) = -k*k*io4*h0 + k*io4*h1.*rm1 - o2p*rm2;
-g3(~isus) = k*k*io4*h0.*rm1 + io4*k*(k*k-2*rm2).*h1 + 2*o2p*rm3;
-g4(~isus) = k*io4*(3*rm2-k*k).*(2*h1.*rm1-k*h0) - 6*o2p*rm4;
+r2fac = (1-r2logrfac)*k*k*0.25*o2p;
+logr = log(rnot);
+g0(~isus) = io4*h0 + o2p*logr - r2fac*rnot.*rnot.*logr;
+g1(~isus) = -k*io4*h1 + o2p*rm1 - r2fac*(rnot+2*rnot.*logr);
+g21(~isus) = -k*k*io4*h0 + k*io4*h1.*rm1 - o2p*rm2 - r2fac*(3+2*logr) - ...
+    g1(~isus).*rm1;
+g3(~isus) = k*k*io4*h0.*rm1 + io4*k*(k*k-2*rm2).*h1 + 2*o2p*rm3 - r2fac*2*rm1;
+g4(~isus) = k*io4*(3*rm2-k*k).*(2*h1.*rm1-k*h0) - 6*o2p*rm4 + r2fac*2*rm2;
 
 % manually cancel when small
 
@@ -176,13 +187,15 @@ f = even_pseval(cf2,rsus);
 
 % differentiate power series to get derivatives
 fac = 2*(1:nterms);
+d21 = fac(:).*(fac(:)-1)-fac(:);
+fd21 = even_pseval(cf2(:).*d21,rsus).*rm2;
 cf1 = cf1.*fac(:); cf2 = cf2.*fac(:);
 j0m1d1 = even_pseval(cf1,rsus).*rm1;
 fd1 = even_pseval(cf2,rsus).*rm1;
 cf1 = cf1.*(fac(:)-1); cf2 = cf2.*(fac(:)-1);
 j0m1d2 = even_pseval(cf1,rsus).*rm2;
-
 fd2 = even_pseval(cf2,rsus).*rm2;
+
 cf1 = cf1(:).*(fac(:)-2); cf1 = cf1(2:end);
 cf2 = cf2(:).*(fac(:)-2); cf2 = cf2(2:end);
 j0m1d3 = even_pseval(cf1,rsus).*rm1;
@@ -194,9 +207,10 @@ j0m1d4 = even_pseval(cf1,rsus).*rm2;
 fd4 = even_pseval(cf2,rsus).*rm2;
 
 % combine to get derivative of i/4 H + log/(2*pi)
-g0(isus) = const1*(j0m1+1) - o2p*(f  + logr.*j0m1);
-g1(isus) = const1*j0m1d1 - o2p*(fd1 + logr.*j0m1d1 + j0m1.*rm1);
-g2(isus) = const1*j0m1d2 - o2p*(fd2 + logr.*j0m1d2 + 2*j0m1d1.*rm1 - j0m1.*rm2);
+r2fac = -(1-r2logrfac)*k*k*0.25;
+g0(isus) = const1*(j0m1+1+r2fac*rsus.*rsus) - o2p*(f  + logr.*j0m1);
+g1(isus) = const1*(j0m1d1+2*r2fac*rsus) - o2p*(fd1 + logr.*j0m1d1 + j0m1.*rm1);
+g21(isus) = const1*(j0m1d2-j0m1d1.*rm1) - o2p*(fd21 + logr.*(j0m1d2-j0m1d1.*rm1) + 2*j0m1d1.*rm1 - 2*j0m1.*rm2);
 g3(isus) = const1*j0m1d3 - o2p*(fd3 + logr.*j0m1d3 + 3*j0m1d2.*rm1 - ...
     3*j0m1d1.*rm2 + 2*j0m1.*rm3);
 g4(isus) = const1*j0m1d4 - o2p*(fd4 + logr.*j0m1d4 + 4*j0m1d3.*rm1 - ...
