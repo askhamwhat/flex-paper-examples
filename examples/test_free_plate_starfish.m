@@ -1,13 +1,13 @@
-clear
-clc
+%clear
+%clc
 
-zk = 100;
+zk = 0.01;
 nu = 1/3;
 
 cparams = [];
 cparams.eps = 1.0e-6;
 cparams.nover = 0;
-cparams.maxchunklen = 4 / zk; % setting a chunk length helps when the
+cparams.maxchunklen = min(4 / zk,0.4); % setting a chunk length helps when the
                               % frequency is known
 
 
@@ -18,6 +18,7 @@ narms = 5;
 amp = 0.25;
 start = tic; chnkr = chunkerfunc(@(t) starfish(t,narms,amp),cparams,pref); 
 t1 = toc(start);
+chnkr = sort(chnkr);
 
 fprintf('%5.2e s : time to build geo\n',t1)
 coefs = [nu; 0];
@@ -70,6 +71,10 @@ denom = sqrt(x.^2+y.^2);
 numer = chnkr.d(1,:).*chnkr.d2(2,:)-chnkr.d2(1,:).*chnkr.d(2,:);
 
 kappa = numer./(denom.^3);
+size(kappa)
+kappa = signed_curvature(chnkr(:));
+kappa = kappa(:).';
+size(kappa)
 
 hilb = sysmat1*H - ((1+nu)/2).*(D*D)- ((1+nu)*nu/2).*(D*D);
 hilb2 = sysmat2*H ;
@@ -197,21 +202,21 @@ uerr = utarg - true_sol;
 figure
 tiledlayout(1,3)
 nexttile 
-h = pcolor(X,Y, utarg,[],'all');
+h = pcolor(X,Y, real(utarg));
 set(h,'EdgeColor','None'); hold on;
 title("BIE Solution", 'FontSize',16)
 plot(chnkr,'w-','LineWidth',2);
 colorbar
 
 nexttile
-h = pcolor(X,Y, true_sol,[],'all');
+h = pcolor(X,Y, real(true_sol));
 set(h,'EdgeColor','None'); hold on;
 title("True Solution", 'FontSize',16)
 plot(chnkr,'w-','LineWidth',2);
 colorbar
 
 nexttile 
-h = pcolor(X,Y,log10(abs(uerr) / max(abs(true_sol),[],'all')));
+h = pcolor(X,Y,log10(abs(uerr) / max(abs(true_sol(:)))));
 set(h,'EdgeColor','None'); hold on;
 title("Relative error (free plate kernel)", 'FontSize',16)
 plot(chnkr,'w-','LineWidth',2);
