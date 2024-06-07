@@ -317,10 +317,9 @@ if strcmpi(type, 'free plate K21 first part')
 end
 
 
-% free plate kernel K21 for the modified biharmonic problem. This part
-% handles the singularity subtraction and swap the evaluation to its
-% asymptotic expansions if the targets and sources are close. 
-
+% free plate kernel K21 for the modified biharmonic problem with 
+% singularity and H[delta'] subtraction removed. Needed to build
+% translation matrices. 
 if strcmpi(type, 'free plate K21 first part unsubtract')
    srcnorm = srcinfo.n;
    srctang = srcinfo.d;
@@ -388,7 +387,7 @@ if strcmpi(type, 'free plate K21 first part unsubtract')
           forthK(:, :, 3).*(tauxtarg.*tauxtarg.*nytarg.*ny + 2*tauxtarg.*tauytarg.*nxtarg.*ny + tauytarg.*tauytarg.*nxtarg.*nx + 2*tauxtarg.*tauytarg.*nytarg.*nx)+...
           forthK(:, :, 4).*(tauytarg.*tauytarg.*nxtarg.*ny + 2*tauxtarg.*tauytarg.*nytarg.*ny + tauytarg.*tauytarg.*nytarg.*nx) +...
           forthK(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*ny)));
-   % third kernel with singularity subtraction and H[delta']
+   % third kernel with singularity subtraction and H[delta'] removed
    % 
  
 end
@@ -451,6 +450,8 @@ if strcmpi(type, 'free plate hilbert subtract')
 
 end
 
+% kernels in K11 with hilbert transform subtractions commented out.
+% Needed to build translation matrices.
 if strcmpi(type, 'free plate hilbert unsubtract')                                 
    srcnorm = srcinfo.n;
    srctang = srcinfo.d;
@@ -496,13 +497,13 @@ if strcmpi(type, 'free plate hilbert unsubtract')
         third(:, :, 4).*(nytarg.*nytarg.*tauy)) - ...
         1./(2*zk^2).*(thirdK(:, :, 1).*(nxtarg.*nxtarg.*taux) + thirdK(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
         thirdK(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
-        thirdK(:, :, 4).*(nytarg.*nytarg.*tauy))) ... % + ((1+ coefs(1))/2).*0.25*hilb -...
+        thirdK(:, :, 4).*(nytarg.*nytarg.*tauy))) ... % + ((1+ coefs(1))/2).*0.25*hilb -... % hilbert subtraction commented out
        -((1+ coefs(1))/2)*coefs(1).*(1./(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
        third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
         third(:, :, 4).*(tauytarg.*tauytarg.*tauy)) - ...
         1./(2*zk^2).*(thirdK(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + thirdK(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
        thirdK(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
-        thirdK(:, :, 4).*(tauytarg.*tauytarg.*tauy)));  %+ ((1+ coefs(1))/2)*coefs(1).*0.25*hilb;   % hilbert subtraction 
+        thirdK(:, :, 4).*(tauytarg.*tauytarg.*tauy)));  %+ ((1+ coefs(1))/2)*coefs(1).*0.25*hilb;   % hilbert subtraction commented out
 
 end
 
