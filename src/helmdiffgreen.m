@@ -1,4 +1,4 @@
-function [val,grad,hess,der3,der4] = helmdiffgreen(k,src,targ,ifr2logr)
+function [val,grad,hess,der3,der4,der5] = helmdiffgreen(k,src,targ,ifr2logr)
 %HELMDIFFGREEN evaluate the difference of the 
 % Helmholtz Green function and the Laplace Green function
 % for the given sources and targets, i.e. 
@@ -61,9 +61,12 @@ dy = yt-ys;
 dx2 = dx.*dx;
 dx3 = dx2.*dx;
 dx4 = dx3.*dx;
+dx5 = dx4.*dx;
+
 dy2 = dy.*dy;
 dy3 = dy2.*dy;
 dy4 = dy3.*dy;
+dy5 = dy4.*dy;
 
 r2 = dx2 + dy2;
 r = sqrt(r2);
@@ -75,7 +78,7 @@ rm5 = rm1.*rm4;
 
 % get value and r derivatives
       
-[g0,g1,g21,g3,g4] = diff_h0log_and_rders(k,r,r2logrfac);
+[g0,g1,g21,g3,g4,g5] = diff_h0log_and_rders(k,r,r2logrfac);
 
 %     evaluate potential and derivatives
 
@@ -115,9 +118,30 @@ if nargout > 4
              3*g21.*rm2;
 end
 
+if nargout > 5
+    der5(:,:,1) = (dx5.*g5+10*dy2.*dx3.*g4.*rm1 + ...
+          (15*dy4.*dx-30*dy2.*dx3).*g3.*rm2 + ...
+         (60*dy2.*dx3-45*dy4.*dx).*g21.*rm3).*rm5;
+    der5(:,:,2) = (dy.*dx4.*g5+(6*dy3.*dx2-4*dy.*dx4).*g4.*rm1 + ...
+      (3*dy5+12*dy.*dx4-30*dy3.*dx2).*g3.*rm2 + ...
+     (72*dy3.*dx2-9*dy5-24*dy.*dx4).*g21.*rm3).*rm5;
+    der5(:,:,3) = (dy2.*dx3.*g5+(3*dy4.*dx-6*dy2.*dx3+dx5).*g4.*rm1 + ...
+      (27*dy2.*dx3-15*dy4.*dx-3*dx5).*g3.*rm2 + ...
+     (36*dy4.*dx-63*dy2.*dx3+6*dx5).*g21.*rm3).*rm5;
+    der5(:,:,4) = (dx2.*dy3.*g5+(3*dx4.*dy-6*dx2.*dy3+dy5).*g4.*rm1 + ...
+      (27*dx2.*dy3-15*dx4.*dy-3*dy5).*g3.*rm2 + ...
+     (36*dx4.*dy-63*dx2.*dy3+6*dy5).*g21.*rm3).*rm5;
+    der5(:,:,5) = (dx.*dy4.*g5+(6*dx3.*dy2-4*dx.*dy4).*g4.*rm1 + ...
+      (3*dx5+12*dx.*dy4-30*dx3.*dy2).*g3.*rm2 + ...
+     (72*dx3.*dy2-9*dx5-24*dx.*dy4).*g21.*rm3).*rm5;
+    der5(:,:,6) = (dy5.*g5+10*dx2.*dy3.*g4.*rm1 + ...
+      (15*dx4.*dy-30*dx2.*dy3).*g3.*rm2 + ...
+     (60*dx2.*dy3-45*dx4.*dy).*g21.*rm3).*rm5;
 end
 
-function [g0,g1,g21,g3,g4] = diff_h0log_and_rders(k,r,r2logrfac)
+end
+
+function [g0,g1,g21,g3,g4,g5] = diff_h0log_and_rders(k,r,r2logrfac)
 % g0 = g
 % g1 = g'
 % g21 = g'' - g'/r
@@ -130,6 +154,7 @@ g0 = zeros(size(r));
 g1 = zeros(size(r));
 g3 = zeros(size(r));
 g4 = zeros(size(r));
+g5 = zeros(size(r));
 g21 = zeros(size(r));
 
 io4 = 1i*0.25;
@@ -152,6 +177,7 @@ rm1 = 1./rnot;
 rm2 = rm1.*rm1;
 rm3 = rm1.*rm2;
 rm4 = rm1.*rm3;
+rm5 = rm1.*rm4;
 
 r2fac = (1-r2logrfac)*k*k*0.25*o2p;
 logr = log(rnot);
@@ -161,6 +187,8 @@ g21(~isus) = -k*k*io4*h0 + k*io4*h1.*rm1 - o2p*rm2 - r2fac*(3+2*logr) - ...
     g1(~isus).*rm1;
 g3(~isus) = k*k*io4*h0.*rm1 + io4*k*(k*k-2*rm2).*h1 + 2*o2p*rm3 - r2fac*2*rm1;
 g4(~isus) = k*io4*(3*rm2-k*k).*(2*h1.*rm1-k*h0) - 6*o2p*rm4 + r2fac*2*rm2;
+g5(~isus) = io4*k*( (12*k*rm3-2*k^3*rm1).*h0  + ...
+    (-24*rm4+7*k*k*rm2-k^4).*h1) + 24*o2p*rm5 - r2fac*4*rm3;
 
 % manually cancel when small
 
@@ -169,6 +197,7 @@ rm1 = 1./rsus;
 rm2 = rm1.*rm1;
 rm3 = rm1.*rm2;
 rm4 = rm1.*rm3;
+rm5 = rm1.*rm4;
 
 gam = 0.57721566490153286060651209;
 nterms = 14;
@@ -206,6 +235,11 @@ cf1 = cf1(:).*(fac(:)-1); cf2 = cf2(:).*(fac(:)-1);
 j0m1d4 = even_pseval(cf1,rsus).*rm2;
 fd4 = even_pseval(cf2,rsus).*rm2;
 
+cf1 = cf1(:).*(fac(:)-2); cf1 = cf1(2:end);
+cf2 = cf2(:).*(fac(:)-2); cf2 = cf2(2:end);
+j0m1d5 = even_pseval(cf1,rsus).*rm1;
+fd5 = even_pseval(cf2,rsus).*rm1;
+
 % combine to get derivative of i/4 H + log/(2*pi)
 r2fac = -(1-r2logrfac)*k*k*0.25;
 g0(isus) = const1*(j0m1+1+r2fac*rsus.*rsus) - o2p*(f  + logr.*j0m1);
@@ -215,6 +249,8 @@ g3(isus) = const1*j0m1d3 - o2p*(fd3 + logr.*j0m1d3 + 3*j0m1d2.*rm1 - ...
     3*j0m1d1.*rm2 + 2*j0m1.*rm3);
 g4(isus) = const1*j0m1d4 - o2p*(fd4 + logr.*j0m1d4 + 4*j0m1d3.*rm1 - ...
     6*j0m1d2.*rm2 + 8*j0m1d1.*rm3 - 6*j0m1.*rm4);
+g5(isus) = const1*j0m1d5 - o2p*(fd5 + logr.*j0m1d5 + 5*j0m1d4.*rm1 - ...
+    10*j0m1d3.*rm2 + 20*j0m1d2.*rm3 - 30*j0m1d1.*rm4 + 24*j0m1.*rm5);
 
 end
 

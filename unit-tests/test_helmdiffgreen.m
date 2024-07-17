@@ -3,7 +3,7 @@
 % 
 
 clearvars; clc
-rng(1234);
+rng(12345);
 
 ns = 3;
 nt = 4;
@@ -15,13 +15,13 @@ targ0 = randn(2,nt);
 % test derivatives
 
 ifr2logr = false;
-[val0,grad0,hess0,der30,der40] = helmdiffgreen(k,src0,targ0,ifr2logr);
+[val0,grad0,hess0,der30,der40,der50] = helmdiffgreen(k,src0,targ0,ifr2logr);
 
 for j = 1:5
     h = 10^(-j);
     dx = h*[1;0];
     targ1 = targ0 + dx;
-    [val1,grad1,hess1,der31,der41] = helmdiffgreen(k,src0,targ1,ifr2logr);
+    [val1,grad1,hess1,der31,der41,der51] = helmdiffgreen(k,src0,targ1,ifr2logr);
 
     errdx = norm(ones(size(val0)) - 2*(val1-val0)/h./(grad0(:,:,1)+grad1(:,:,1)));
     errdxx = norm(ones(size(val0)) - 2*(grad1(:,:,1)-grad0(:,:,1))/h./(hess0(:,:,1)+hess1(:,:,1)));
@@ -33,15 +33,21 @@ for j = 1:5
     errdxxxy = norm(ones(size(val0)) - 2*(der31(:,:,2)-der30(:,:,2))/h./(der40(:,:,2)+der41(:,:,2)));
     errdxxyy = norm(ones(size(val0)) - 2*(der31(:,:,3)-der30(:,:,3))/h./(der40(:,:,3)+der41(:,:,3)));
     errdxyyy = norm(ones(size(val0)) - 2*(der31(:,:,4)-der30(:,:,4))/h./(der40(:,:,4)+der41(:,:,4)));
-    
+    errdxxxxx = norm(ones(size(val0)) - 2*(der41(:,:,1)-der40(:,:,1))/h./(der50(:,:,1)+der51(:,:,1)));
+    errdxxxxy = norm(ones(size(val0)) - 2*(der41(:,:,2)-der40(:,:,2))/h./(der50(:,:,2)+der51(:,:,2)));
+    errdxxxyy = norm(ones(size(val0)) - 2*(der41(:,:,3)-der40(:,:,3))/h./(der50(:,:,3)+der51(:,:,3)));
+    errdxxyyy = norm(ones(size(val0)) - 2*(der41(:,:,4)-der40(:,:,4))/h./(der50(:,:,4)+der51(:,:,4)));
+    errdxyyyy = norm(ones(size(val0)) - 2*(der41(:,:,5)-der40(:,:,5))/h./(der50(:,:,5)+der51(:,:,5)));
+
     dx = h*[0;1];
     targ1 = targ0 + dx;
-    [val1,grad1,hess1,der31,der41] = helmdiffgreen(k,src0,targ1,ifr2logr);
+    [val1,grad1,hess1,der31,der41,der51] = helmdiffgreen(k,src0,targ1,ifr2logr);
 
     errdy = norm(ones(size(val0)) - 2*(val1-val0)/h./(grad0(:,:,2)+grad1(:,:,2)));
     errdyy = norm(ones(size(val0)) - 2*(grad1(:,:,2)-grad0(:,:,2))/h./(hess0(:,:,3)+hess1(:,:,3)));
     errdyyy = norm(ones(size(val0)) - 2*(hess1(:,:,3)-hess0(:,:,3))/h./(der30(:,:,4)+der31(:,:,4)));
     errdyyyy = norm(ones(size(val0)) - 2*(der31(:,:,4)-der30(:,:,4))/h./(der40(:,:,5)+der41(:,:,5)));
+    errdyyyyy = norm(ones(size(val0)) - 2*(der41(:,:,5)-der40(:,:,5))/h./(der50(:,:,6)+der51(:,:,6)));
 
     fprintf('%5.2e : err in dx\n',errdx)    
     fprintf('%5.2e : err in dy\n',errdy)    
@@ -57,6 +63,12 @@ for j = 1:5
     fprintf('%5.2e : err in dxxyy\n',errdxxyy)    
     fprintf('%5.2e : err in dxyyy\n',errdxyyy)    
     fprintf('%5.2e : err in dyyyy\n',errdyyyy)    
+    fprintf('%5.2e : err in dxxxxx\n',errdxxxxx)    
+    fprintf('%5.2e : err in dxxxxy\n',errdxxxxy)    
+    fprintf('%5.2e : err in dxxxyy\n',errdxxxyy)    
+    fprintf('%5.2e : err in dxxyyy\n',errdxxyyy)    
+    fprintf('%5.2e : err in dxyyyy\n',errdxyyyy)    
+    fprintf('%5.2e : err in dyyyyy\n',errdyyyyy)    
 end
 
 %%
@@ -107,7 +119,7 @@ eps(1)*(abs(targt(2)*der4(2))+abs(targt(1)*der4(1)))/abs(der3xxxt)
 
 srct = [0;0]; targt = 10^(-2)*[3;1];
 kt = sqrt(2);
-[val,grad,hess,der3,der4] = helmdiffgreen(kt,srct,targt,ifr2logr);
+[val,grad,hess,der3,der4,der5] = helmdiffgreen(kt,srct,targt,ifr2logr);
 der3xxyt = 0.0024439996259246495294+0.0012494167265597222964*1i;
 
 abs(der3(2)-der3xxyt)/abs(der3xxyt)
