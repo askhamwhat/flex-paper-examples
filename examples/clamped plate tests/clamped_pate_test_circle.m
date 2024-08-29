@@ -1,4 +1,4 @@
-clear 
+close all
  
 clearvars
 
@@ -9,15 +9,12 @@ clearvars
 % %
 % 
 % zk = sqrt(norm(kvec));               % our k (wave number)
-zk = 18;
+zk = 0.01;
 cparams = [];
 
-cparams.eps = 1e-6;
-cparams.nover = 0;
-cparams.maxchunklen = 4./zk;       % setting a chunk length helps when the
+cparams.eps = 1e-12;
+cparams.maxchunklen = min(0.5,4./zk);       % setting a chunk length helps when the
                                     % frequency is known'
-
-
 
 chnkr = chunkerfunc(@(t) circle(t), cparams);
 
@@ -31,7 +28,7 @@ axis equal
 
 opts = [];
 opts.sing = 'log';
-fkern =  @(s,t) chnk.flex2d.kern(zk, s, t, 'clamped-plate');           % build the desired kernel
+fkern =  @(s,t) flex2d.kern(zk, s, t, 'clamped-plate');           % build the desired kernel
 
 start = tic;
 D = chunkermat(chnkr,fkern, opts);
@@ -44,23 +41,23 @@ A = [-1/2, 0; 1, -1/2];                                     % jump matrix (for e
 
 M = kron(eye(chnkr.npt), A);  
 
-[y1, grad, ~, ~, ~] = chnk.flex2d.helmdiffgreen(zk, [0;0], chnkr.r);
+src = randn(2,1)*0.1;
 
-[y1K, gradK, ~ , ~ ,~] = chnk.flex2d.helmdiffgreen(zk*(1i), [0;0], chnkr.r);
-
+[y1, grad, ~, ~, ~] = flex2d.hkdiffgreen(zk, src, chnkr.r);
 
 
 nx = chnkr.n(1,:); 
 ny = chnkr.n(2,:);
 
 normalderiv = grad(:, :, 1).*(nx.')+ grad(:, :, 2).*(ny.');                                % Dirichlet and Neumann BC                          
-normalderivK = gradK(:, :, 1).*(nx.') + gradK(:, :, 2).*(ny.');
 
-firstbc = 1/(2*zk^2).*y1 - 1/(2*zk^2).*y1K;
-secondbc = 1/(2*zk^2).*normalderiv - 1/(2*zk^2).*normalderivK;
+firstbc = 1/(2*zk^2).*y1 ;
+secondbc = 1/(2*zk^2).*normalderiv ;
 
 [nt, ~] = size(D);
 lhs = M + D;
+%%
+%
 
 rhs = zeros(nt, 1); rhs(1:2:end) = firstbc ; rhs(2:2:end) = secondbc;
 
@@ -75,8 +72,8 @@ rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);        
 
 
-xs = -2:0.1:2;                                    % generate some targets
-ys = -2:0.1:2;
+xs = (-2:0.1:2)+0.01*randn();                                    % generate some targets
+ys = (-2:0.1:2)+0.01*randn();
 [X,Y] = meshgrid(xs, ys);
 targets = [X(:).'; Y(:).'];
 [~,na] = size(targets);
@@ -86,36 +83,32 @@ in = chunkerinterior(chnkr, targets);
 out = ~in; 
 toc
 
-ikern1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'first kernel');                              % build the kernel of evaluation          
-ikern2 = @(s,t) chnk.flex2d.kern(zk, s, t, 'second kernel');
+ikern1 = @(s,t) flex2d.kern(zk, s, t, 'first kernel');                              % build the kernel of evaluation          
+ikern2 = @(s,t) flex2d.kern(zk, s, t, 'second kernel');
 
 start1 = tic;
 Dsol = chunkerkerneval(chnkr, ikern1,rho1, targets(:, out)) + chunkerkerneval(chnkr, ikern2, rho2, targets(:,out));
 t2 = toc(start1);
 fprintf('%5.2e s : time for kernel eval (for plotting)\n',t2)
 
-true_sol = zeros(na, 1);
-utarg = zeros(na, 1);
+true_sol = nan(na, 1);
+utarg = nan(na, 1);
 
 
-[val, ~] = chnk.flex2d.helmdiffgreen(zk, [0;0], targets(:,out));
+[val, ~] = flex2d.hkdiffgreen(zk, src, targets(:,out));
 
-[valK, ~] = chnk.flex2d.helmdiffgreen(zk*(1i), [0;0], targets(:,out));
-
-
-trueval = 1/(2*zk^2).*val - 1/(2*zk^2).*valK;
+trueval = 1/(2*zk^2).*val;
 
 utarg(out) = Dsol;
 true_sol(out) = trueval;
 
 
-uerr = utarg - true_sol;
+uerr = abs(utarg - true_sol)/(max(abs(true_sol(:))));
 uerr = reshape(uerr,size(X));
 figure
-h = pcolor(X,Y,log10(abs(uerr)));
+h = pcolor(X,Y,log10(uerr));
 set(h,'EdgeColor','None'); hold on;
-title("Absolute error (clamped plate kernel on a circle k = 0.1)", 'FontSize',16)
+title("Absolute error (clamped plate kernel on a circle)", 'FontSize',16)
 plot(chnkr,'w-','LineWidth',2);
-%colormap(hsv)
 colorbar
 

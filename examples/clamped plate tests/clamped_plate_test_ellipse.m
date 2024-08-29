@@ -7,14 +7,13 @@ close all
 % 
 % zk = sqrt(norm(kvec)); 
 
-zk = 18;                                                % wave number
+zk = 1;                                                % wave number
 
 cparams= [];
 cparams.eps = 1e-6;
 %cparams.nover = 0 ;
-cparams.maxchunklen = 0.4; 
+cparams.maxchunklen = min(4/abs(zk),1); 
 
-           
 start = tic;
 chnkr = chunkerfunc(@(t) ellipse(t), cparams);            % build the geometry
 t1 = toc(start);
@@ -31,7 +30,7 @@ axis equal
 
 opts = [];
 opts.sing = 'log';
-fkern =  @(s,t) chnk.flex2d.kern(zk, s, t, 'clamped-plate');           % build the desired kernel
+fkern =  @(s,t) flex2d.kern(zk, s, t, 'clamped-plate');           % build the desired kernel
 
 start = tic;
 D = chunkermat(chnkr,fkern, opts);
@@ -49,27 +48,22 @@ start = tic;
 for i = 1:chnkr.npt
     A(:, :, i) = [-0.5, 0 ; kappa(i), -0.5];
 end
-t3 = toc; 
+t3 = toc(start); 
 fprintf('%5.2e s : time to construct jump matrix\n',t3);
 
 K = num2cell(A, [1 2]);
 M = blkdiag(K{:}); 
  
 
-[y1, grad, ~, ~, ~] = chnk.flex2d.helmdiffgreen(zk, [0;0], chnkr.r);
-
-[y1K, gradK, ~ , ~ ,~] = chnk.flex2d.helmdiffgreen(zk*(1i), [0;0], chnkr.r);
-
-
+[y1, grad, ~, ~, ~] = flex2d.hkdiffgreen(zk, [0;0], chnkr.r);
 
 nx = chnkr.n(1,:); 
 ny = chnkr.n(2,:);
 
 normalderiv = grad(:, :, 1).*(nx.')+ grad(:, :, 2).*(ny.');                                % Dirichlet and Neumann BC(Clamped BC)                         
-normalderivK = gradK(:, :, 1).*(nx.') + gradK(:, :, 2).*(ny.');
 
-firstbc = 1/(2*zk^2).*y1 - 1/(2*zk^2).*y1K;
-secondbc = 1/(2*zk^2).*normalderiv - 1/(2*zk^2).*normalderivK;
+firstbc = 1/(2*zk^2).*y1;
+secondbc = 1/(2*zk^2).*normalderiv;
 
 [nt, ~] = size(D);
 lhs = M + D;
@@ -86,8 +80,8 @@ rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);        
 
 
-xs = -4:0.05:4;                                    % generate some targets
-ys = -4:0.05:4;
+xs = (-4:0.05:4) + 0.01*randn();                                    % generate some targets
+ys = (-4:0.05:4) + 0.01*randn();
 [X,Y] = meshgrid(xs, ys);
 targets = [X(:).'; Y(:).'];
 [~,na] = size(targets);
@@ -97,8 +91,8 @@ in = chunkerinterior(chnkr, targets);
 out = ~in; 
 toc
 
-ikern1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'first kernel');                              % build the kernel of evaluation          
-ikern2 = @(s,t) chnk.flex2d.kern(zk, s, t, 'second kernel');
+ikern1 = @(s,t) flex2d.kern(zk, s, t, 'first kernel');                              % build the kernel of evaluation          
+ikern2 = @(s,t) flex2d.kern(zk, s, t, 'second kernel');
 
 
 start1 = tic;
@@ -109,17 +103,14 @@ fprintf('%5.2e s : time for kernel eval (for plotting)\n',t2)
 true_sol = zeros(na, 1);
 utarg = zeros(na, 1);
 
-[val, ~] = chnk.flex2d.helmdiffgreen(zk, [0;0], targets(:,out));
+[val, ~] = flex2d.hkdiffgreen(zk, [0;0], targets(:,out));
 
-[valK, ~] = chnk.flex2d.helmdiffgreen(zk*(1i), [0;0], targets(:,out));
-
-
-trueval = 1/(2*zk^2).*val - 1/(2*zk^2).*valK;
+trueval = 1/(2*zk^2).*val;
 
 utarg(out) = Dsol;
 true_sol(out) = trueval;
 
-uerr = utarg - true_sol;
+uerr = abs(utarg - true_sol)/max(abs(true_sol(:)));
 uerr = reshape(uerr,size(X));
 
 figure(2)

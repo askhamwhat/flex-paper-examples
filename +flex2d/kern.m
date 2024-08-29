@@ -1,7 +1,7 @@
 function submat= kern(zk,srcinfo,targinfo,type,varargin)
-%CHNK.FLEX2D.KERN standard Modified biharmonic layer potential kernels in 2D
+%FLEX2D.KERN standard Modified biharmonic layer potential kernels in 2D
 % 
-% Syntax: submat = chnk.flex2d.kern(zk,srcinfo,targingo,type,varargin)
+% Syntax: submat = flex2d.kern(zk,srcinfo,targingo,type,varargin)
 %
 % Let x be targets and y be sources for these formulas, with
 % n_x and n_y the corresponding unit normals at those points
@@ -78,7 +78,6 @@ if strcmpi(type, 'clamped-plate')
    srctang = srcinfo.d;
    targnorm = targinfo.n;
 
-   [~, ~, hess, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
@@ -86,12 +85,16 @@ if strcmpi(type, 'clamped-plate')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, hessK, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-   
+   [~, ~, hess, third, ~] = flex2d.hkdiffgreen(zk, src, targ);  
+   %[~, ~, hess, third, ~] = flex2d.helmdiffgreen(zk, src, targ);  
+   %[~, ~, hessK, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   %hess = hess-hessK;
+   %third = third-thirdK;
 
-   [~, ~, ~, ~, forth] = chnk.flex2d.helmdiffgreen(zk, src, targ, true);
-   [~, ~, ~, ~, forthK] = chnk.flex2d.helmdiffgreen(zkimag, src, targ, true);  
-  
+   [~, ~, ~, ~, forth] = flex2d.hkdiffgreen(zk, src, targ, true);
+   %[~, ~, ~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ, true);
+   %[~, ~, ~, ~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ, true);  
+   %forth = forth-forthK;
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -112,41 +115,26 @@ if strcmpi(type, 'clamped-plate')
 
 
    Kxx = -(1/(2*zk^2).*(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
-       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
-        1/(2*zk^2).*(thirdK(:, :, 1).*(nx.*nx.*nx) + thirdK(:, :, 2).*(3*nx.*nx.*ny) +...
-       thirdK(:, :, 3).*(3*nx.*ny.*ny) + thirdK(:, :, 4).*(ny.*ny.*ny))) - ...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny))) - ...
        (3/(2*zk^2).*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy))-...
-       3/(2*zk^2).*(thirdK(:, :, 1).*(nx.*taux.*taux) + thirdK(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       thirdK(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + thirdK(:, :, 4).*(ny.*tauy.*tauy)));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy)));  % G_{ny ny ny} + 3G_{ny tauy tauy}
 
-   Kxy = -(1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))-...
-           1/(2*zk^2).*(hessK(:, :, 1).*(nx.*nx) + hessK(:, :, 2).*(2*nx.*ny) + hessK(:, :, 3).*(ny.*ny)))+...
-          (1/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))-...
-           1/(2*zk^2).*(hessK(:, :, 1).*(taux.*taux) + hessK(:, :, 2).*(2*taux.*tauy) + hessK(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
+   Kxy = -(1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny)))+...
+          (1/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
 
    Kyx = -(1/(2*zk^2).*(forth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + forth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
           forth(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + forth(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
-          forth(:, :, 5).*(ny.*ny.*ny.*nytarg)) - ...
-          1/(2*zk^2).*(forthK(:, :, 1).*(nx.*nx.*nx.*nxtarg) + forthK(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
-          forthK(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + forthK(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
-          forthK(:, :, 5).*(ny.*ny.*ny.*nytarg))) - ...
+          forth(:, :, 5).*(ny.*ny.*ny.*nytarg)) ) - ...
           (3/(2*zk^2).*(forth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
           forth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
           forth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
-          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))-...
-          3/(2*zk^2).*(forthK(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forthK(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
-          forthK(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
-          forthK(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) + ...
-          forthK(:, :, 5).*(ny.*tauy.*tauy.*nytarg))) +...
+          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))) +...
           1/pi.*(-3.*(rn.^2).*normaldot./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3));
 
    Kyy = -(1/(2*zk^2).*(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
-         third(:, :,4).*(ny.*ny.*nytarg)) -...
-         1/(2*zk^2).*(thirdK(:,:, 1).*(nx.*nx.*nxtarg) +thirdK(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + thirdK(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
-         thirdK(:, :,4).*(ny.*ny.*nytarg))) + (1/(2*zk^2).*(third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         third(:, :,4).*(tauy.*tauy.*nytarg)) - 1/(2*zk^2).*(thirdK(:,:, 1).*(taux.*taux.*nxtarg) +thirdK(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + thirdK(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         thirdK(:, :,4).*(tauy.*tauy.*nytarg)));
+         third(:, :,4).*(ny.*ny.*nytarg))) + ...
+         (1/(2*zk^2).*(third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
+         third(:, :,4).*(tauy.*tauy.*nytarg)));
 
   submat = zeros(2*nt,2*ns);
   
@@ -163,7 +151,7 @@ if strcmpi(type, 'clamped-plate-rcip')
    srctang = srcinfo.d;
    targnorm = targinfo.n;
 
-   [~, ~, hess, third, forth] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+   [~, ~, hess, third, forth] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
@@ -171,7 +159,7 @@ if strcmpi(type, 'clamped-plate-rcip')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, hessK, thirdK, forthK] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, hessK, thirdK, forthK] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -235,7 +223,7 @@ if strcmpi(type, 'fluid problem')
    targnorm = targinfo.n;
    targtang = targinfo.d;
 
-   [~, ~, ~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+   [~, ~, ~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
@@ -243,7 +231,7 @@ if strcmpi(type, 'fluid problem')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, ~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    [~,grad] = chnk.lap2d.green(src,targ,true);
 
@@ -331,7 +319,7 @@ if strcmpi(type, 'free plate first part')
 
 
 
-   [~, ~, hess, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~, ~, hess, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -339,7 +327,7 @@ if strcmpi(type, 'free plate first part')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, hessK, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, hessK, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    
 
 
@@ -418,7 +406,7 @@ if strcmpi(type, 'free plate K21 first part')
    coefs = varargin{1};
    %R = 0.001; % radius of kernel replacement
 
-   [~, ~,~, ~, forth] = chnk.flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
+   [~, ~,~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -426,7 +414,7 @@ if strcmpi(type, 'free plate K21 first part')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, ~,~, forthK] = chnk.flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part 
+   [~, ~, ~,~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part 
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -502,7 +490,7 @@ if strcmpi(type, 'free plate hilbert subtract')
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~,~,~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~,~,~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -510,7 +498,7 @@ if strcmpi(type, 'free plate hilbert subtract')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~,~, ~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~,~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    [~,grad] = chnk.lap2d.green(src,targ,true); 
 
   
@@ -558,14 +546,14 @@ if strcmpi(type, 'free plate coupled hilbert')
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~, ~,~, ~, forth] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~, ~,~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
   
 
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~,~, ~, forthK] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~,~, ~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
   
 
   
@@ -642,8 +630,8 @@ if strcmpi(type, 'free plate K21 second part')
    
    zkimag = (1i)*zk;
 
-   [~,~,~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
-   [~,~,~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~,~,~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~,~,~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    submat = ((1-coefs(1))/(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*nx) + third(:, :, 2).*(nxtarg.*nxtarg.*ny + 2*nxtarg.*nytarg.*nx) +...
         third(:, :, 3).*(2*nxtarg.*nytarg.*ny + nytarg.*nytarg.*nx) +...
@@ -669,7 +657,7 @@ if strcmpi(type, 'free plate K21 hilbert part')
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~, ~, ~,third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~, ~, ~,third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -677,7 +665,7 @@ if strcmpi(type, 'free plate K21 hilbert part')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, ~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    [~,grad] = chnk.lap2d.green(src,targ,true); 
 
   
@@ -728,13 +716,13 @@ if strcmpi(type, 'free plate K22 second part')
 
 
 
-   [~, ~, hess, ~, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~, ~, hess, ~, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, hessK, ~, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, hessK, ~, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    
    
 
@@ -768,7 +756,7 @@ if strcmpi(type, 'free plate hilbert unsubtract')
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~,~,~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~,~,~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -776,7 +764,7 @@ if strcmpi(type, 'free plate hilbert unsubtract')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~,~, ~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~,~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    [~,grad] = chnk.lap2d.green(src,targ,true); 
 
   
@@ -829,7 +817,7 @@ if strcmpi(type, 'free plate first part interior')
 
 
 
-   [~, ~, hess, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~, ~, hess, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -837,7 +825,7 @@ if strcmpi(type, 'free plate first part interior')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, hessK, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, hessK, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    
 
 
@@ -915,7 +903,7 @@ if strcmpi(type, 'free plate K21 first part interior')
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~, ~,~, ~, forth] = chnk.flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
+   [~, ~,~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -923,7 +911,7 @@ if strcmpi(type, 'free plate K21 first part interior')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, ~,~, forthK] = chnk.flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part 
+   [~, ~, ~,~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part 
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -1019,8 +1007,8 @@ if strcmpi(type, 'free plate K21 second part interior')
    
    zkimag = (1i)*zk;
 
-   [~,~,~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
-   [~,~,~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~,~,~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~,~,~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    submat = -((1-coefs(1))/(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*nx) + third(:, :, 2).*(nxtarg.*nxtarg.*ny + 2*nxtarg.*nytarg.*nx) +...
         third(:, :, 3).*(2*nxtarg.*nytarg.*ny + nytarg.*nytarg.*nx) +...
@@ -1055,7 +1043,7 @@ if strcmpi(type, 'supported plate K11')
 
 
 
-   [~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
+   [~, third, ~] = flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -1063,7 +1051,7 @@ if strcmpi(type, 'supported plate K11')
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part
+   [~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part
    [~,grad] = chnk.lap2d.green(src,targ,true);                                 % lap kernels for the adjoint of Hilbert transform
 
    dx = repmat(srctang(1,:),nt,1);
@@ -1118,7 +1106,7 @@ if strcmpi(type, 'test kernel')                                                 
 
 
 
-   [~, ~,~, ~, forth] = chnk.flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
+   [~, ~,~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
@@ -1126,7 +1114,7 @@ if strcmpi(type, 'test kernel')                                                 
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, ~, ~, forthK] = chnk.flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part
+   [~, ~, ~, ~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part
     
 
   
@@ -1291,7 +1279,7 @@ if strcmpi(type, "test kernel jump")
    srctang = srcinfo.d;
    
 
-   [~, ~, ~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+   [~, ~, ~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
@@ -1299,7 +1287,7 @@ if strcmpi(type, "test kernel jump")
    % nytarg = repmat((targnorm(2,:)).',1,ns);
 
    zkimag = (1i)*zk;
-   [~, ~, ~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    % [~,grad] = chnk.lap2d.green(src,targ,true);
 
@@ -1362,21 +1350,17 @@ if strcmpi(type, 'first kernel')
 
 
 
-    [~, ~, ~, third, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+    [~, ~, ~, third, ~] = flex2d.hkdiffgreen(zk, src, targ);           % Hankel part
     
     zkimag = 1i*zk;
-    [~,~, ~, thirdK, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+    %[~,~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
 
 
     submat = -(1/(2*zk^2).*(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
-       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
-        1/(2*zk^2).*(thirdK(:, :, 1).*(nx.*nx.*nx) + thirdK(:, :, 2).*(3*nx.*nx.*ny) +...
-       thirdK(:, :, 3).*(3*nx.*ny.*ny) + thirdK(:, :, 4).*(ny.*ny.*ny))) - ...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) ) - ...
        (3/(2*zk^2).*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy))-...
-       3/(2*zk^2).*(thirdK(:, :, 1).*(nx.*taux.*taux) + thirdK(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       thirdK(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + thirdK(:, :, 4).*(ny.*tauy.*tauy)));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy)));  % G_{ny ny ny} + 3G_{ny tauy tauy}
 
 end
 
@@ -1395,28 +1379,23 @@ if strcmpi(type, 'second kernel')
     taux = dx./ds;
     tauy = dy./ds;
 
-    [~, ~, hess] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+    [~, ~, hess] = flex2d.hkdiffgreen(zk, src, targ);           % Hankel part
     
-    zkimag = 1i*zk;
-    [~, ~, hessK, ~, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-
-    submat =  -(1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))-...
-           1/(2*zk^2).*(hessK(:, :, 1).*(nx.*nx) + hessK(:, :, 2).*(2*nx.*ny) + hessK(:, :, 3).*(ny.*ny)))+...
-          (1/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))-...
-           1/(2*zk^2).*(hessK(:, :, 1).*(taux.*taux) + hessK(:, :, 2).*(2*taux.*tauy) + hessK(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
+    submat =  -(1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny)))+...
+          (1/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
 end
 
 
 if strcmpi(type, 'free plate eval first')                                               % G_{ny}
    srcnorm = srcinfo.n;
-   [~,grad] = chnk.flex2d.helmdiffgreen(zk,src,targ);        % Hankel part
+   [~,grad] = flex2d.helmdiffgreen(zk,src,targ);        % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
 
 
    zkimag = (1i)*zk;
-   [~,gradK] = chnk.flex2d.helmdiffgreen(zkimag,src,targ);    % modified bessel K part
+   [~,gradK] = flex2d.helmdiffgreen(zkimag,src,targ);    % modified bessel K part
 
  
   
@@ -1431,11 +1410,11 @@ if strcmpi(type, 'free plate eval first hilbert')                               
    srctang = srcinfo.d;
    coefs = varargin{1};
 
-   [~,grad] = chnk.flex2d.helmdiffgreen(zk,src,targ);        % Hankel part
+   [~,grad] = flex2d.helmdiffgreen(zk,src,targ);        % Hankel part
 
   
    zkimag = (1i)*zk;
-   [~,gradK] = chnk.flex2d.helmdiffgreen(zkimag,src,targ);    % modified bessel K part
+   [~,gradK] = flex2d.helmdiffgreen(zkimag,src,targ);    % modified bessel K part
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -1455,10 +1434,10 @@ end
 
 if strcmpi(type, 'free plate eval second')                                          % G = 1/(2k^2) (i/4 H_0^{1} - 1/2pi K_0)
 
-   [val,~] = chnk.flex2d.helmdiffgreen(zk,src,targ);        % Hankel part
+   [val,~] = flex2d.helmdiffgreen(zk,src,targ);        % Hankel part
 
    zkimag = (1i)*zk;
-   [valK,~] = chnk.flex2d.helmdiffgreen(zkimag,src,targ);    % modified bessel K part
+   [valK,~] = flex2d.helmdiffgreen(zkimag,src,targ);    % modified bessel K part
 
    submat = 1/(2*zk^2).*val - 1/(2*zk^2).*valK;
 
@@ -1470,12 +1449,12 @@ if strcmpi(type, 'fluid problem first evaluation')
    srcnorm = srcinfo.n;
    srctang = srcinfo.d;
    
-   [~, ~, hess, ~, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+   [~, ~, hess, ~, ~] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
    zkimag = (1i)*zk;
-   [~, ~, hessK, ~, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, hessK, ~, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -1494,10 +1473,10 @@ end
 if strcmpi(type, 'fluid problem second evaluation hilbert')
    srctang = srcinfo.d;
    
-   [~, ~, hess, ~, ~] = chnk.flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
+   [~, ~, hess, ~, ~] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
 
    zkimag = (1i)*zk;
-   [~, ~, hessK, ~, ~] = chnk.flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, hessK, ~, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
