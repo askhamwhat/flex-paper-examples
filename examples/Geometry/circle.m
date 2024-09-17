@@ -8,8 +8,8 @@ y = sin(t);
 dx = -sin(t);
 dy = cos(t);
 
-dxx = cos(t);
-dyy = sin(t);
+dxx = -cos(t);
+dyy = -sin(t);
 
 r = [(x(:)).';(y(:)).'];
 d = [(dx(:)).'; (dy(:)).'];

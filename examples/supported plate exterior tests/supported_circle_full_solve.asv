@@ -9,13 +9,13 @@ pref = [];
 pref.k = 16;
 cparams.eps = 1e-6;
 cparams.nover = 0;
-cparams.maxchunklen = 0.125; % 4./zk;       % setting a chunk length helps when the
+cparams.maxchunklen = 0.5; % 4./zk;       % setting a chunk length helps when the
                                     % frequency is known'
 R = 1;
 chnkr = chunkerfunc(@(t) circle(t), cparams, pref);
 chnkr = chnkr.move([0;0],[0;0],0,R);
 chnkr = chnkr.sort();
-centre = [0.2; 0.2];
+centre = [0.3; 0];
 coefs = nu;
 
 kappa = -signed_curvature(chnkr);
