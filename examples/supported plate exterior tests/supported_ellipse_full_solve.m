@@ -6,10 +6,9 @@ nu = 0.3;
 
 cparams = [];
 pref = [];
-pref.k = 16;
-cparams.eps = 1e-5;
+cparams.eps = 1e-6;
 cparams.nover = 0;
-cparams.maxchunklen = 0.125/8; % 4./zk;       % setting a chunk length helps when the
+cparams.maxchunklen = 4; % 4./zk;       % setting a chunk length helps when the
                                     % frequency is known'
 R = 1;
 chnkr = chunkerfunc(@(t) ellipse(t), cparams, pref);

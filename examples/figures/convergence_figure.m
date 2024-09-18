@@ -7,7 +7,7 @@ clear
 % 
 % zk = 0.1;               % our k (wave number)
 
-maxchunklens = [4 2 1 0.5 0.25 0.125 0.0625 0.03125];
+maxchunklens = [4 2 1 0.5 ]; % 0.25 0.125 0.0625 0.03125];
 npts = maxchunklens*0;
 free_errors = maxchunklens*0;
 clamped_errors = maxchunklens*0;
@@ -19,7 +19,7 @@ cparams = [];
 
 cparams.eps = 1e-5;
 cparams.nover = 0;
-thetas = 0:pi/12:2*pi-pi/12;
+thetas = 0:pi/6:2*pi-pi/12;
 targets = [3*cos(thetas); 1.5*sin(thetas)];
 centre = [0.5;0.5];
 
