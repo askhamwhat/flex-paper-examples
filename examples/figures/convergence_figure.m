@@ -7,7 +7,7 @@ clear
 % 
 % zk = 0.1;               % our k (wave number)
 
-maxchunklens = [4 2 1 0.5 ]; % 0.25 0.125 0.0625 0.03125];
+maxchunklens = [4 2 1 0.5 0.25 0.125 0.0625 0.03125];
 npts = maxchunklens*0;
 free_errors = maxchunklens*0;
 clamped_errors = maxchunklens*0;
@@ -17,7 +17,7 @@ zk = 5;
 nu = 1/3;
 cparams = [];
 
-cparams.eps = 1e-5;
+cparams.eps = 1e-6;
 cparams.nover = 0;
 thetas = 0:pi/6:2*pi-pi/12;
 targets = [3*cos(thetas); 1.5*sin(thetas)];
@@ -37,7 +37,7 @@ for i = 1:numel(npts)
     hold on
     quiver(chnkr)
     hold on 
-    %scatter(xs(:),ys(:),36,kp,'filled')
+    scatter(targets(1,:),targets(2,:),36,'filled')
     axis equal
     drawnow
         
@@ -90,10 +90,7 @@ for i = 1:numel(npts)
     rhs = zeros(nt, 1); rhs(1:2:end) = firstbc ; rhs(2:2:end) = secondbc;
     
     
-    tic
-    %sol = gmres(lhs, rhs, [], 1e-13, 400);
     sol = lhs\rhs;
-    toc;
     
     rho1 = sol(1:2:end);                                    % first density
     rho2 = sol(2:2:end);        
@@ -114,7 +111,7 @@ for i = 1:numel(npts)
     true_sol = 1/(2*zk^2).*val;
 
     uerr = utarg - true_sol;
-    uerr = uerr ./  abs(true_sol);
+    uerr = uerr ./  max(abs(true_sol));
     clamped_errors(i) = norm(uerr);
 
     % free plate
@@ -125,8 +122,8 @@ for i = 1:numel(npts)
     fkern1 = @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert subtract', coefs);                   % hilbert subtraction kernels in K11
     fkern2 = @(s,t) flex2d.kern(zk, s, t, 'free plate coupled hilbert', coefs);   
     
-    hilbert = @(s,t) chnk.lap2d.kern(s, t, 'hilb');
-    double = @(s,t) chnk.lap2d.kern(s,t, 'd');
+    hilbert = @(s,t) lap2d.kern(s, t, 'hilb');
+    double = @(s,t) lap2d.kern(s,t, 'd');
     
     fkern3 = @(s,t) flex2d.kern(zk, s, t, 'free plate K21 first part', coefs);                     % singularity subtration kernel in K21 (including swapping its Asmyptotics expansions)
     
@@ -217,10 +214,7 @@ for i = 1:numel(npts)
     rhs(1:2:end) = firstbc ; 
     rhs(2:2:end) = secondbc;
     
-    tic
-    %sol = gmres(lhs, rhs, [], 1e-13, 200);
     sol = lhs\rhs;
-    toc;
     
     rho1 = sol(1:2:end);                                    % first density
     rho2 = sol(2:2:end);        
@@ -245,13 +239,13 @@ for i = 1:numel(npts)
     true_sol = 1/(2*zk^2).*val ;
         
     uerr = utarg - true_sol;
-    uerr = uerr ./  abs(true_sol);
+    uerr = uerr ./  max(abs(true_sol));
     free_errors(i) = norm(uerr);
 
     % supported plate
 
-    ikern1 =  @(s,t) suppkern(zk, s, t, 'supported plate',coefs);           % build the desired kernel
-    ikern2 =  @(s,t) suppkern(zk, s, t, 'supported plate K21',coefs);           % build the desired kernel
+    ikern1 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate ellipse',coefs);           % build the desired kernel
+    ikern2 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K21 ellipse',coefs);           % build the desired kernel
 
     opts = [];
     opts.sing = 'log';
@@ -346,8 +340,8 @@ for i = 1:numel(npts)
     rho2 = sol(2:2:end);  % second density
     
     
-    ikern1 = @(s,t) suppkern(zk, s, t, 'supported plate K1 eval',coefs);                              % build the kernel of evaluation          
-    ikern2 = @(s,t) suppkern(zk, s, t, 'supported plate K2 eval',coefs);
+    ikern1 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K1 eval ellipse',coefs);                              % build the kernel of evaluation          
+    ikern2 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K2 eval',coefs);
     
     start1 = tic;
     utarg = chunkerkerneval(chnkr, ikern1, rho1, targets) + ...
@@ -358,12 +352,12 @@ for i = 1:numel(npts)
     true_sol = 1/(2*zk^2).*val;
 
     uerr = utarg - true_sol;
-    uerr = uerr ./  abs(true_sol);
+    uerr = uerr ./  max(abs(true_sol));
     supported_errors(i) = norm(uerr);
 end
 
 figure(2)
-loglog(npts , clamped_errors, npts, free_errors, npts, supported_errors)
+loglog(npts , clamped_errors, '.-', npts, free_errors, '.-', npts, supported_errors,'.-', MarkerSize=20)
 hold on
 legend('clamped error','free error','supported plate')
 xlabel('N')
