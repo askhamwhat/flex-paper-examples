@@ -6,11 +6,10 @@ nu = 0.3;
 
 cparams = [];
 pref = [];
-pref.k = 16;
 cparams.eps = 1e-6;
 cparams.nover = 0;
-cparams.maxchunklen = 0.125; % 4./zk;       % setting a chunk length helps when the
-                                    % frequency is known'
+cparams.maxchunklen = 0.25; 
+
 R = 1;
 chnkr = chunkerfunc(@(t) circle(t), cparams, pref);
 chnkr = chnkr.move([0;0],[0;0],0,R);
@@ -18,7 +17,7 @@ chnkr = chnkr.sort();
 centre = [0.2; 0.2];
 coefs = nu;
 
-kappa = -signed_curvature(chnkr);
+kappa = signed_curvature(chnkr);
 kappa = kappa(:);
 
 figure(1)                                                   % plot the chunker-object (supposed to be a circle centered at 1 with radius 1)
@@ -26,7 +25,6 @@ clf
 plot(chnkr, '-x')
 hold on
 quiver(chnkr)
-hold on 
 axis equal
 drawnow
 
@@ -50,34 +48,7 @@ K12fo = M(1:2:end,2:2:end);
 K21fo = M(2:2:end,1:2:end);
 K22fo = M(2:2:end,2:2:end);
 
-% Circle:  
-
-c = 1;
-
-xs = chnkr.r(1,:,:);
-ys = chnkr.r(2,:,:);
-
-xs = xs(:);
-ys = ys(:);
-
-t = atan2(c*ys,xs);
-
-x1 = -c*sin(t);    
-y1 = cos(t);
-
-x2 = -c*cos(t);
-y2 = -sin(t);
-
-x3 = c*sin(t);
-y3 = -cos(t);
-
-x4 = c*cos(t);
-y4 = sin(t);
-
-
-kp2 = (-x4.*y1.^3 + y1.^2.*(4*y3.*x2+y4.*x1) + x1.*(-3*x2.^2.*y2 + y4.*x1.^2 - 4*x3.*x1.*y2 - 3*y2.^3) ...
-     + y1.*(3*x2.^3 - x1.*(x4.*x1 + 4*y3.*y2) + x2.*(4*x3.*x1 + 3*y2.^2))) ./ (x1.^2 + y1.^2).^(7/2) ...
-     - 6*(x1.*x2 + y1.*y2).*((x1.^2+y1.^2).*(x1.*y3 - y1.*x3) + 3*(y1.*x2 - x1.*y2).*(x1.*x2 + y1.*y2)) ./ (x1.^2 + y1.^2).^(9/2);
+kp2 = 0;
 
 k21diag = (nu - 1)*(12*kappa.^3*(nu^2 - nu + 4) + kp2*(-5*nu^2 + 4*nu + 33))/(48*pi*(nu - 3)) + 1i*zk^2/64*(3+nu)*((-1+nu)*(7+nu)/(3-nu))*kappa;
 
@@ -130,10 +101,8 @@ ys = centre(2)-4-0.05:0.2:centre(2)+4+0.05;
 targets = [X(:).'; Y(:).'];
 [~,na] = size(targets);
 
-tic
 in = chunkerinterior(chnkr, targets); 
 out = ~in; 
-toc
 
 rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);  % second density
@@ -181,13 +150,13 @@ plot(chnkr,'w-','LineWidth',2);
 colorbar
 
 nexttile
-h = pcolor(X,Y,log10(abs(true_sol - utarg)));
+h = pcolor(X,Y,log10(abs(uerr) / max(abs(true_sol(:)))));
 set(h,'EdgeColor','None'); hold on;
 % set(h,'FaceColor','interp');
-title("Absolute Error", 'FontSize',16)
+title("Relative Error", 'FontSize',16)
 plot(chnkr,'w-','LineWidth',2);
 %colormap(hsv)
 colorbar
 
 disp('Maximum relative error:')
-disp(max(abs(uerr(:)) / max(abs(true_sol),[],'all')))
+disp(max(abs(uerr(:)) / max(abs(true_sol(:)))))

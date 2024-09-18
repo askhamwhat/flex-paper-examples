@@ -9,13 +9,13 @@ pref = [];
 pref.k = 16;
 cparams.eps = 1e-5;
 cparams.nover = 0;
-cparams.maxchunklen = 0.25; % 4./zk;       % setting a chunk length helps when the
+cparams.maxchunklen = 0.125/8; % 4./zk;       % setting a chunk length helps when the
                                     % frequency is known'
 R = 1;
 chnkr = chunkerfunc(@(t) ellipse(t), cparams, pref);
 chnkr = chnkr.move([0;0],[0;0],0,R);
 chnkr = chnkr.sort();
-centre = [1/2; 1/2];
+centre = [0.5; 0.5];
 coefs = nu;
 
 kappa = signed_curvature(chnkr);
@@ -31,11 +31,8 @@ hold on
 axis equal
 drawnow
 
-disp(chnkr.npt)
-
-
-ikern1 =  @(s,t) suppkern(zk, s, t, 'supported plate',coefs);           % build the desired kernel
-ikern2 =  @(s,t) suppkern(zk, s, t, 'supported plate K21',coefs);           % build the desired kernel
+ikern1 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate ellipse',coefs);           % build the desired kernel
+ikern2 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K21 ellipse',coefs);           % build the desired kernel
 
 opts = [];
 opts.sing = 'log';
@@ -49,10 +46,6 @@ M = chunkermat(chnkr,ikern1, opts);
 M2 = chunkermat(chnkr,ikern2, opts2);
 M2(isnan(M2)) = 0;
 
-K11fo = M(1:2:end,1:2:end);
-K12fo = M(1:2:end,2:2:end);
-K21fo = M(2:2:end,1:2:end);
-K22fo = M(2:2:end,2:2:end);
 
 % Ellipse:  
 
@@ -89,12 +82,9 @@ K21fo = M2 + diag(k21diag.*chnkr.wts(:));
 
 c0 = (nu - 1)*(nu + 3)*(2*nu - 1)/(2*(3 - nu));
 
-M(1:2:end,1:2:end) = K11fo - 0.5*eye(chnkr.npt) ;
+M(1:2:end,1:2:end) = M(1:2:end,1:2:end) - 0.5*eye(chnkr.npt) ;
 M(2:2:end,1:2:end) = K21fo + c0.*kappa.^2.*eye(chnkr.npt);
-M(1:2:end,2:2:end) = K12fo;
-M(2:2:end,2:2:end) = K22fo - 0.5*eye(chnkr.npt);
-
-lhs = M;
+M(2:2:end,2:2:end) = M(2:2:end,2:2:end) - 0.5*eye(chnkr.npt);
 
 t3 = toc(start); 
 fprintf('%5.2e s : time to assemble lhs \n',t3);
@@ -115,14 +105,14 @@ firstbc = 1/(2*zk^2).*val ;
 secondbc = 1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
            nu/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy));
 
-[nt, ~] = size(lhs);
+[nt, ~] = size(M);
 
 rhs = zeros(nt, 1); 
 rhs(1:2:end) = firstbc ; 
 rhs(2:2:end) = secondbc;
 
 start = tic;
-sol = lhs\rhs;
+sol = M\rhs;
 t3 = toc(start); 
 fprintf('%5.2e s : time to solve system \n',t3);
 
@@ -134,17 +124,15 @@ ys = centre(2)-4-0.05:0.2:centre(2)+4+0.05;
 targets = [X(:).'; Y(:).'];
 [~,na] = size(targets);
 
-tic
 in = chunkerinterior(chnkr, targets); 
 out = ~in; 
-toc
 
 rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);  % second density
 
 
-ikern1 = @(s,t) suppkern(zk, s, t, 'supported plate K1 eval',coefs);                              % build the kernel of evaluation          
-ikern2 = @(s,t) suppkern(zk, s, t, 'supported plate K2 eval',coefs);
+ikern1 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K1 eval ellipse',coefs);                              % build the kernel of evaluation          
+ikern2 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K2 eval',coefs);
 
 start1 = tic;
 Dsol = chunkerkerneval(chnkr, ikern1, rho1, targets(:, out)) + ...
