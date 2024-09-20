@@ -84,17 +84,11 @@ if strcmpi(type, 'clamped-plate')
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~, ~, hess, third, ~] = flex2d.hkdiffgreen(zk, src, targ);  
-   %[~, ~, hess, third, ~] = flex2d.helmdiffgreen(zk, src, targ);  
-   %[~, ~, hessK, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-   %hess = hess-hessK;
-   %third = third-thirdK;
+   
+   [~, ~, hess, third, ~] = flex2d.hkdiffgreen(zk, src, targ); 
 
    [~, ~, ~, ~, forth] = flex2d.hkdiffgreen(zk, src, targ, true);
-   %[~, ~, ~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ, true);
-   %[~, ~, ~, ~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ, true);  
-   %forth = forth-forthK;
+   [~, ~, ~, ~, forthbh] = flex2d.bhgreen(src, targ);  
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -133,7 +127,8 @@ if strcmpi(type, 'clamped-plate')
           forth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
           forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))) + ...
           1/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2));
-%          1/pi.*(-3.*(rn.^2).*normaldot./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3));
+ %         1/pi.*(-3.*(rn.^2).*normaldot./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3));
+
 
    Kyy = -(1/(2*zk^2).*(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
          third(:, :,4).*(ny.*ny.*nytarg))) + ...
@@ -147,6 +142,50 @@ if strcmpi(type, 'clamped-plate')
     
   submat(2:2:end,1:2:end) = Kyx;
   submat(2:2:end,2:2:end) = Kyy;
+end
+
+
+
+% clamped plate kernel for modified biharmonic problem
+if strcmpi(type, 'clamped-plate K21')
+   srcnorm = srcinfo.n;
+   srctang = srcinfo.d;
+   targnorm = targinfo.n;
+
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
+   
+   nxtarg = repmat((targnorm(1,:)).',1,ns);
+   nytarg = repmat((targnorm(2,:)).',1,ns);
+
+   [~, ~, ~, ~, forth] = flex2d.bhgreen(src, targ);  
+
+   dx = repmat(srctang(1,:),nt,1);
+   dy = repmat(srctang(2,:),nt,1);
+    
+   ds = sqrt(dx.*dx+dy.*dy);
+
+   taux = dx./ds;
+   tauy = dy./ds;
+   
+   rx = targ(1,:).' - src(1,:);
+   ry = targ(2,:).' - src(2,:);
+   r2 = rx.^2 + ry.^2;
+   normaldot = nx.*nxtarg + ny.*nytarg;
+
+   rn = rx.*nx + ry.*ny;
+   rtau = rx.*taux + ry.*tauy;
+   ntargtau = nxtarg.*taux + nytarg.*tauy;
+
+   rntarg = rx.*nxtarg + ry.*nytarg;
+
+   submat = -((forth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + forth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
+          forth(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + forth(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
+          forth(:, :, 5).*(ny.*ny.*ny.*nytarg)) ) - ...
+          (3*(forth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
+          forth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
+          forth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
+          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))); 
 end
 
 

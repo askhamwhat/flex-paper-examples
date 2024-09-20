@@ -1,12 +1,14 @@
 function [r, d, d2] = ellipse(t)
 
-x = 3.*cos(t);
+c = 2;
+
+x = c.*cos(t);
 y = sin(t);
 
-x1 = -3.*sin(t);
+x1 = -c.*sin(t);
 y1 = cos(t);
 
-x2 = -3.*cos(t);
+x2 = -c.*cos(t);
 y2 = -sin(t);
 
 r = [(x(:)).'; (y(:)).'];
