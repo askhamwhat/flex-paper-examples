@@ -122,71 +122,44 @@ for i = 1:numel(npts)
 
     % free plate
 
-    fkern =  @(s,t) flex2d.kern(zk, s, t, 'free plate first part', coefs);        % build the desired kernel
+    fkern1 =  @(s,t) flex2d.kern(zk, s, t, 'free plate first part', coefs);        % build the desired kernel
+    fkern2 =  @(s,t) flex2d.kern(zk, s, t, 'free plate K21 first part bh', coefs);        % build the desired kernel
+    fkern3 =  @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert bh', coefs);        % build the desired kernel
+    fkern4 =  @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert', coefs);        % build the desired kernel
+    double = @(s,t) lap2d.kern(s,t,'d',coefs);
+    hilbert = @(s,t) lap2d.kern(s,t,'hilb',coefs);
 
-
-    fkern1 = @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert subtract', coefs);                   % hilbert subtraction kernels in K11
-    fkern2 = @(s,t) flex2d.kern(zk, s, t, 'free plate coupled hilbert', coefs);   
-
-    hilbert = @(s,t) lap2d.kern(s, t, 'hilb');
-    double = @(s,t) lap2d.kern(s,t, 'd');
-
-    fkern3 = @(s,t) flex2d.kern(zk, s, t, 'free plate K21 first part', coefs);                     % singularity subtration kernel in K21 (including swapping its Asmyptotics expansions)
-
-    fkern4 = @(s,t) flex2d.kern(zk, s, t, 'free plate K21 second part', coefs);                    % kernels in K21 needs to multiply by curvature
-
-    fkern5 = @(s,t) flex2d.kern(zk, s, t, 'free plate K21 hilbert part', coefs);                   % kernels in K21 coupled with hilbert transforms and needs to multiply by curvature
-
-    fkern6 = @(s,t) flex2d.kern(zk, s, t, 'free plate K22 second part', coefs);                    % kernels in K22 needs to multiply by curvature
-
-
-    start = tic;
-    sysmat = chunkermat(chnkr,fkern, opts);
-    sysmat1 = chunkermat(chnkr, fkern1, opts);
-    sysmat2 = chunkermat(chnkr, fkern2, opts);
-
-    K21 = chunkermat(chnkr, fkern3, opts);
-
-    K21second = chunkermat(chnkr, fkern4, opts);
-    K21hilbert = chunkermat(chnkr, fkern5, opts);
-
-    K22second = chunkermat(chnkr, fkern6, opts);
+    sysmat1 = chunkermat(chnkr,fkern1, opts);
+    sysmat1bh = chunkermat(chnkr,fkern2, opts2);
+    sysmat2bh = chunkermat(chnkr,fkern3, opts2);
+    sysmat3 = chunkermat(chnkr,fkern4, opts);
 
     D = chunkermat(chnkr, double, opts);
-    t1 = toc(start);
-    fprintf('%5.2e s : time to assemble matrix\n',t1)
 
-    opts2 = [];
-    opts2.sing = 'pv';
+    opts3 = [];
+    opts3.sing = 'pv';
 
-    start = tic;
-    H = chunkermat(chnkr, hilbert, opts2);                                              % Assemble hilbert transforms
-    t1 = toc(start);
-    fprintf('%5.2e s : time to assemble matrix\n',t1)
+    H = chunkermat(chnkr, hilbert, opts3);     
 
+    % Perform diagonal replacement for smooth quads here
 
+    sysmat1bh(isnan(sysmat1bh)) = 0;
+    sysmat1bh = sysmat1bh + diag((-5+4*nu)/(12*pi)*kappa.^2.*chnkr.wts(:));
+    % sysmat1(2:2:end,1:2:end) = sysmat1(2:2:end,1:2:end) + sysmat1bh;
 
-    kappa = signed_curvature(chnkr);
-    kappa = kappa(:);
+    sysmat2bh(isnan(sysmat2bh)) = 0;
 
+    sysmat2bh(1:2:end,1:2:end) = sysmat2bh(1:2:end,1:2:end)*H;
+    sysmat2bh(2:2:end,1:2:end) = sysmat2bh(2:2:end,1:2:end)*H;
+    sysmat3(1:2:end,1:2:end) = sysmat3(1:2:end,1:2:end)*H  - 2*((1+nu)/2)^2*D*D;
+    sysmat3(2:2:end,1:2:end) = sysmat3(2:2:end,1:2:end)*H;
 
-    hilb = sysmat1*H - ((1+nu)/2).*(D*D)- ((1+nu)*nu/2).*(D*D);
-    hilb2 = sysmat2*H ;
+    sysmat = sysmat1 + sysmat3 ;
 
-    mat1 =  sysmat(1:2:end, 1:2:end);
-    mat4 =  sysmat(2:2:end, 2:2:end);
+    D = [-1/2 + (1/8)*(1+nu).^2, 0; 0, 1/2];                                     % jump matrix (for exterior problem)
+    D = kron(eye(chnkr.npt), D);
 
-
-    sysmat(1:2:end, 1:2:end) = mat1 + hilb;
-    sysmat(2:2:end, 1:2:end) = K21 +  hilb2 + (kappa).*(K21hilbert*H + K21second);
-    sysmat(2:2:end, 2:2:end) = mat4 + (kappa).*(K22second);
-
-
-    A = [-1/2 + (1/8)*(1+nu).^2, 0; 0, 1/2];                                     % jump matrix (for exterior problem)
-
-    M = kron(eye(chnkr.npt), A);
-
-    lhs =  M + sysmat;
+    lhs =  D + sysmat;
 
     zkimag = (1i)*zk;
     [~, ~, hess, third, ~] = flex2d.hkdiffgreen(zk, centre, chnkr.r);

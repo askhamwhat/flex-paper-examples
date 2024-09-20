@@ -125,8 +125,8 @@ if strcmpi(type, 'clamped-plate')
           (3/(2*zk^2).*(forth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
           forth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
           forth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
-          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))); % + ...
- %         1/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2));
+          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))) + ...
+          1/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2));
  %         1/pi.*(-3.*(rn.^2).*normaldot./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3));
 
 
@@ -145,20 +145,20 @@ if strcmpi(type, 'clamped-plate')
 end
 
 
-if strcmpi(type, 'clamped-plate-rcip')
+
+% clamped plate kernel for modified biharmonic problem
+if strcmpi(type, 'clamped-plate K21')
    srcnorm = srcinfo.n;
    srctang = srcinfo.d;
    targnorm = targinfo.n;
 
-   [~, ~, hess, third, forth] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
    
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~, ~, hessK, thirdK, forthK] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
+   [~, ~, ~, ~, forth] = flex2d.bhgreen(src, targ);  
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -167,142 +167,26 @@ if strcmpi(type, 'clamped-plate-rcip')
 
    taux = dx./ds;
    tauy = dy./ds;
+   
+   rx = targ(1,:).' - src(1,:);
+   ry = targ(2,:).' - src(2,:);
+   r2 = rx.^2 + ry.^2;
+   normaldot = nx.*nxtarg + ny.*nytarg;
 
-   Kxx = -(1/(2*zk^2).*(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
-       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
-        1/(2*zk^2).*(thirdK(:, :, 1).*(nx.*nx.*nx) + thirdK(:, :, 2).*(3*nx.*nx.*ny) +...
-       thirdK(:, :, 3).*(3*nx.*ny.*ny) + thirdK(:, :, 4).*(ny.*ny.*ny))) - ...
-       (3/(2*zk^2).*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy))-...
-       3/(2*zk^2).*(thirdK(:, :, 1).*(nx.*taux.*taux) + thirdK(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       thirdK(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + thirdK(:, :, 4).*(ny.*tauy.*tauy)));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+   rn = rx.*nx + ry.*ny;
+   rtau = rx.*taux + ry.*tauy;
+   ntargtau = nxtarg.*taux + nytarg.*tauy;
 
-   Kxy = -(1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))-...
-           1/(2*zk^2).*(hessK(:, :, 1).*(nx.*nx) + hessK(:, :, 2).*(2*nx.*ny) + hessK(:, :, 3).*(ny.*ny)))+...
-          (1/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))-...
-           1/(2*zk^2).*(hessK(:, :, 1).*(taux.*taux) + hessK(:, :, 2).*(2*taux.*tauy) + hessK(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
+   rntarg = rx.*nxtarg + ry.*nytarg;
 
-   Kyx = -(1/(2*zk^2).*(forth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + forth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
+   submat = -((forth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + forth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
           forth(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + forth(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
-          forth(:, :, 5).*(ny.*ny.*ny.*nytarg)) - ...
-          1/(2*zk^2).*(forthK(:, :, 1).*(nx.*nx.*nx.*nxtarg) + forthK(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
-          forthK(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + forthK(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
-          forthK(:, :, 5).*(ny.*ny.*ny.*nytarg))) - ...
-          (3/(2*zk^2).*(forth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
+          forth(:, :, 5).*(ny.*ny.*ny.*nytarg)) ) - ...
+          (3*(forth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
           forth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
           forth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
-          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))-...
-          3/(2*zk^2).*(forthK(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ forthK(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
-          forthK(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
-          forthK(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) + ...
-          forthK(:, :, 5).*(ny.*tauy.*tauy.*nytarg)));
-
-   Kyy = -(1/(2*zk^2).*(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
-         third(:, :,4).*(ny.*ny.*nytarg)) -...
-         1/(2*zk^2).*(thirdK(:,:, 1).*(nx.*nx.*nxtarg) +thirdK(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + thirdK(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
-         thirdK(:, :,4).*(ny.*ny.*nytarg))) + (1/(2*zk^2).*(third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         third(:, :,4).*(tauy.*tauy.*nytarg)) - 1/(2*zk^2).*(thirdK(:,:, 1).*(taux.*taux.*nxtarg) +thirdK(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + thirdK(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         thirdK(:, :,4).*(tauy.*tauy.*nytarg)));
-
-  submat = zeros(2*nt,2*ns);
-  
-  submat(1:2:end,1:2:end) = -2.*Kxx;
-  submat(1:2:end,2:2:end) = -2.*Kxy;
-    
-  submat(2:2:end,1:2:end) = -2.*Kyx;
-  submat(2:2:end,2:2:end) = -2.*Kyy;
+          forth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))); 
 end
-
-
-
-
-if strcmpi(type, 'fluid problem')
-   srcnorm = srcinfo.n;
-   srctang = srcinfo.d;
-   targnorm = targinfo.n;
-   targtang = targinfo.d;
-
-   [~, ~, ~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);           % Hankel part
-   nx = repmat(srcnorm(1,:),nt,1);
-   ny = repmat(srcnorm(2,:),nt,1);
-   
-   nxtarg = repmat((targnorm(1,:)).',1,ns);
-   nytarg = repmat((targnorm(2,:)).',1,ns);
-
-   zkimag = (1i)*zk;
-   [~, ~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-
-   [~,grad] = chnk.lap2d.green(src,targ,true);
-
-   dx = repmat(srctang(1,:),nt,1);
-   dy = repmat(srctang(2,:),nt,1);
-    
-   ds = sqrt(dx.*dx+dy.*dy);
-
-   taux = dx./ds;
-   tauy = dy./ds;
-
-
-   dx1 = repmat((targtang(1,:)).',1,ns);
-   dy1 = repmat((targtang(2,:)).',1,ns);
-
-
-   
-   ds1 = sqrt(dx1.*dx1+dy1.*dy1); 
-
-   
-
-   tauxtarg = dx1./ds1;
-   tauytarg = dy1./ds1;
-
-   stau = (-grad(:,:,1).*nytarg + grad(:,:,2).*nxtarg);
-
-   Kxx = (1/(2*zk^2).*(third(:, :, 1).*(nx.*nx.*nxtarg) + third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) +...
-        third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg) +...
-        third(:, :, 4).*(ny.*ny.*nytarg)) - ...
-        1/(2*zk^2).*(thirdK(:, :, 1).*(nx.*nx.*nxtarg) + thirdK(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) +...
-        thirdK(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg) +...
-        thirdK(:, :, 4).*(ny.*ny.*nytarg))) -...
-        (1/(2*zk^2).*(third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         third(:, :,4).*(tauy.*tauy.*nytarg)) -...
-         1/(2*zk^2).*(thirdK(:,:, 1).*(taux.*taux.*nxtarg) +thirdK(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + thirdK(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         thirdK(:, :,4).*(tauy.*tauy.*nytarg)));  
-       
-
-   Kxy = (1/(2*zk^2).*(third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         third(:, :,4).*(tauy.*tauy.*nytarg)) -...
-         1/(2*zk^2).*(thirdK(:,:, 1).*(taux.*taux.*nxtarg) +thirdK(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + thirdK(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         thirdK(:, :,4).*(tauy.*tauy.*nytarg))); %
-
-   Kyx = (1./(2*zk^2).*(third(:, :, 1).*(nx.*nx.*tauxtarg) + third(:, :, 2).*(nx.*nx.*tauytarg+ 2*nx.*ny.*tauxtarg) +...
-        third(:, :, 3).*(2*nx.*ny.*tauytarg +ny.*ny.*tauxtarg) +...
-        third(:, :, 4).*(ny.*ny.*tauytarg)) - ...
-        1./(2*zk^2).*(thirdK(:, :, 1).*(nx.*nx.*tauxtarg) + thirdK(:, :, 2).*(nx.*nx.*tauytarg+ 2*nx.*ny.*tauxtarg) +...
-        thirdK(:, :, 3).*(2*nx.*ny.*tauytarg +ny.*ny.*tauxtarg) +...
-        thirdK(:, :, 4).*(ny.*ny.*tauytarg))) -...
-       (1./(2*zk^2).*(third(:, :, 1).*(taux.*taux.*tauxtarg) + third(:, :, 2).*(taux.*taux.*tauytarg + 2*taux.*tauy.*tauxtarg) +...
-       third(:, :, 3).*(2*taux.*tauy.*tauytarg + tauy.*tauy.*tauxtarg) +...
-        third(:, :, 4).*(tauy.*tauy.*tauytarg)) - ...
-        1./(2*zk^2).*(thirdK(:, :, 1).*(taux.*taux.*tauxtarg) + thirdK(:, :, 2).*(taux.*taux.*tauytarg + 2*taux.*tauy.*tauxtarg) +...
-       thirdK(:, :, 3).*(2*taux.*tauy.*tauytarg + tauy.*tauy.*tauxtarg) +...
-        thirdK(:, :, 4).*(tauy.*tauy.*tauytarg)));
-
-   Kyy = (1./(2*zk^2).*(third(:, :, 1).*(taux.*taux.*tauxtarg) + third(:, :, 2).*(taux.*taux.*tauytarg + 2*taux.*tauy.*tauxtarg) +...
-       third(:, :, 3).*(2*taux.*tauy.*tauytarg + tauy.*tauy.*tauxtarg) +...
-        third(:, :, 4).*(tauy.*tauy.*tauytarg)) - ...
-        1./(2*zk^2).*(thirdK(:, :, 1).*(taux.*taux.*tauxtarg) + thirdK(:, :, 2).*(taux.*taux.*tauytarg + 2*taux.*tauy.*tauxtarg) +...
-       thirdK(:, :, 3).*(2*taux.*tauy.*tauytarg + tauy.*tauy.*tauxtarg) +...
-        thirdK(:, :, 4).*(tauy.*tauy.*tauytarg))) + 0.5.*stau ;
-
-  submat = zeros(2*nt,2*ns);
-  
-  submat(1:2:end,1:2:end) = Kxx;
-  submat(1:2:end,2:2:end) = Kxy;
-    
-  submat(2:2:end,1:2:end) = Kyx;
-  submat(2:2:end,2:2:end) = Kyy;
-end
-
 
 
 
@@ -313,75 +197,69 @@ if strcmpi(type, 'free plate first part')
    srcnorm = srcinfo.n;
    targnorm = targinfo.n;
    targtang = targinfo.d;
+   targd2 = targinfo.d2;
    coefs = varargin{1};
-   
 
+   [~, ~, hess, third, ~] = flex2d.hkdiffgreen(zk, src, targ);     
+   [~, ~, ~, ~, forth] = flex2d.hkdiffgreen(zk, src, targ, true);    
 
-
-   [~, ~, hess, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~, ~, hessK, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-   
-
 
    dx1 = repmat((targtang(1,:)).',1,ns);
    dy1 = repmat((targtang(2,:)).',1,ns);
 
-
-   
    ds1 = sqrt(dx1.*dx1+dy1.*dy1); 
 
-   
+   d2x1 = repmat((targd2(1,:)).',1,ns);
+   d2y1 = repmat((targd2(2,:)).',1,ns);
 
    tauxtarg = dx1./ds1;
    tauytarg = dy1./ds1;
 
-   
-   
+   denom = sqrt(dx1.^2 + dy1.^2).^3;
+   numer = dx1.*d2y1 - d2x1.*dy1;
+
+   kappax = numer ./ denom; % target curvature
    
    K11 = -(1/(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*nx) + third(:, :, 2).*(nxtarg.*nxtarg.*ny + 2*nxtarg.*nytarg.*nx) +...
         third(:, :, 3).*(2*nxtarg.*nytarg.*ny + nytarg.*nytarg.*nx) +...
-        third(:, :, 4).*(nytarg.*nytarg.*ny)) - ...
-        1/(2*zk^2).*(thirdK(:, :, 1).*(nxtarg.*nxtarg.*nx) + thirdK(:, :, 2).*(nxtarg.*nxtarg.*ny + 2*nxtarg.*nytarg.*nx) +...
-        thirdK(:, :, 3).*(2*nxtarg.*nytarg.*ny + nytarg.*nytarg.*nx) +...
-        thirdK(:, :, 4).*(nytarg.*nytarg.*ny))) - ...
-       coefs(1).*(1/(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*nx) + third(:, :, 2).*(tauxtarg.*tauxtarg.*ny + 2*tauxtarg.*tauytarg.*nx) +...
+        third(:, :, 4).*(nytarg.*nytarg.*ny))) - ...
+       coefs(1)./(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*nx) + third(:, :, 2).*(tauxtarg.*tauxtarg.*ny + 2*tauxtarg.*tauytarg.*nx) +...
         third(:, :, 3).*(2*tauxtarg.*tauytarg.*ny + tauytarg.*tauytarg.*nx) +...
-        third(:, :, 4).*(tauytarg.*tauytarg.*ny)) - ...
-        1/(2*zk^2).*(thirdK(:, :, 1).*(tauxtarg.*tauxtarg.*nx) + thirdK(:, :, 2).*(tauxtarg.*tauxtarg.*ny + 2*tauxtarg.*tauytarg.*nx) +...
-        thirdK(:, :, 3).*(2*tauxtarg.*tauytarg.*ny + tauytarg.*tauytarg.*nx) +...
-        thirdK(:, :, 4).*(tauytarg.*tauytarg.*ny)));  % first kernel with no hilbert transforms (G_{nx nx ny + nu G_{taux taux ny}).
-       
-    
-       
+        third(:, :, 4).*(tauytarg.*tauytarg.*ny)) ;  % first kernel with no hilbert transforms (G_{nx nx ny + nu G_{taux taux ny}).
 
-   K12 =  1/(2*zk^2).*(hess(:, :, 1).*nxtarg.*nxtarg + hess(:, :, 2).*(2*nxtarg.*nytarg) + hess(:, :, 3).*nytarg.*nytarg)-...
-           1/(2*zk^2).*(hessK(:, :, 1).*nxtarg.*nxtarg + hessK(:, :, 2).*(2*nxtarg.*nytarg) + hessK(:, :, 3).*nytarg.*nytarg)+...
-           coefs(1)/(2*zk^2).*(hess(:, :, 1).*tauxtarg.*tauxtarg + hess(:, :, 2).*(2*tauxtarg.*tauytarg) + hess(:, :, 3).*tauytarg.*tauytarg)-...
-           coefs(1)/(2*zk^2).*(hessK(:, :, 1).*tauxtarg.*tauxtarg + hessK(:, :, 2).*(2*tauxtarg.*tauytarg) + ...
-           hessK(:, :, 3).*tauytarg.*tauytarg) ;    % G_{nx nx} + nu G_{taux taux}
+   K12 =  1/(2*zk^2).*(hess(:, :, 1).*nxtarg.*nxtarg + hess(:, :, 2).*(2*nxtarg.*nytarg) + hess(:, :, 3).*nytarg.*nytarg)+...
+           coefs(1)/(2*zk^2).*(hess(:, :, 1).*tauxtarg.*tauxtarg + hess(:, :, 2).*(2*tauxtarg.*tauytarg) + hess(:, :, 3).*tauytarg.*tauytarg) ;    % G_{nx nx} + nu G_{taux taux}
    
-   K21 = 0;
-
-
-
+   K21 = kappax./(2*zk^2).*(1-coefs(1)).*((third(:, :, 1).*(nxtarg.*nxtarg.*nx) + third(:, :, 2).*(nxtarg.*nxtarg.*ny + 2*nxtarg.*nytarg.*nx) +...
+            third(:, :, 3).*(2*nxtarg.*nytarg.*ny + nytarg.*nytarg.*nx) +...
+            third(:, :, 4).*(nytarg.*nytarg.*ny)) - ...
+           (third(:, :, 1).*(tauxtarg.*tauxtarg.*nx) + third(:, :, 2).*(tauxtarg.*tauxtarg.*ny + 2*tauxtarg.*tauytarg.*nx) +...
+            third(:, :, 3).*(2*tauxtarg.*tauytarg.*ny + tauytarg.*tauytarg.*nx) +...
+            third(:, :, 4).*(tauytarg.*tauytarg.*ny)) ) ;
+   % - (1/(2*zk^2).*(forth(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*nx) + forth(:, :, 2).*(nxtarg.*nxtarg.*nxtarg.*ny + 3*nxtarg.*nxtarg.*nytarg.*nx) + ...
+   %        forth(:, :, 3).*(3*nxtarg.*nxtarg.*nytarg.*ny + 3*nxtarg.*nytarg.*nytarg.*nx) +...
+   %        forth(:, :, 4).*(3*nxtarg.*nytarg.*nytarg.*ny +nytarg.*nytarg.*nytarg.*nx)+...
+   %        forth(:, :, 5).*(nytarg.*nytarg.*nytarg.*ny)) ) - ...
+   %        ((2-coefs(1))/(2*zk^2).*(forth(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg.*nx) + forth(:, :, 2).*(tauxtarg.*tauxtarg.*nxtarg.*ny + tauxtarg.*tauxtarg.*nytarg.*nx + 2*tauxtarg.*tauytarg.*nxtarg.*nx)+...
+   %        forth(:, :, 3).*(tauxtarg.*tauxtarg.*nytarg.*ny + 2*tauxtarg.*tauytarg.*nxtarg.*ny + tauytarg.*tauytarg.*nxtarg.*nx + 2*tauxtarg.*tauytarg.*nytarg.*nx)+...
+   %        forth(:, :, 4).*(tauytarg.*tauytarg.*nxtarg.*ny + 2*tauxtarg.*tauytarg.*nytarg.*ny + tauytarg.*tauytarg.*nytarg.*nx) +...
+   %        forth(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*ny)) );
 
    K22 = 1./(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*nxtarg) + third(:, :, 2).*(3*nxtarg.*nxtarg.*nytarg) +...
-       third(:, :, 3).*(3*nxtarg.*nytarg.*nytarg) + third(:, :, 4).*(nytarg.*nytarg.*nytarg)) - ...
-        1./(2*zk^2).*(thirdK(:, :, 1).*(nxtarg.*nxtarg.*nxtarg) + thirdK(:, :, 2).*(3*nxtarg.*nxtarg.*nytarg)+...
-        thirdK(:, :, 3).*(3*nxtarg.*nytarg.*nytarg) + thirdK(:, :, 4).*(nytarg.*nytarg.*nytarg)) +...
+       third(:, :, 3).*(3*nxtarg.*nytarg.*nytarg) + third(:, :, 4).*(nytarg.*nytarg.*nytarg))  +...
         (2-coefs(1))/(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg) + third(:, :, 2).*(tauxtarg.*tauxtarg.*nytarg + 2*tauxtarg.*tauytarg.*nxtarg) +...
         third(:, :, 3).*(2*tauxtarg.*tauytarg.*nytarg + tauytarg.*tauytarg.*nxtarg) +...
-        + third(:, :, 4).*(tauytarg.*tauytarg.*nytarg)) - ...
-        (2-coefs(1))/(2*zk^2).*(thirdK(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg) + thirdK(:, :, 2).*(tauxtarg.*tauxtarg.*nytarg + 2*tauxtarg.*tauytarg.*nxtarg) +...
-        thirdK(:, :, 3).*(2*tauxtarg.*tauytarg.*nytarg + tauytarg.*tauytarg.*nxtarg) +...
-        + thirdK(:, :, 4).*(tauytarg.*tauytarg.*nytarg)); % G_{nx nx nx} + (2-nu) G_{taux taux nx}
+        + third(:, :, 4).*(tauytarg.*tauytarg.*nytarg)) + ... % G_{nx nx nx} + (2-nu) G_{taux taux nx}
+        + kappax.*(1-coefs(1)).*(1/(2*zk^2).*(hess(:, :, 1).*tauxtarg.*tauxtarg + hess(:, :, 2).*(2*tauxtarg.*tauytarg) + hess(:, :, 3).*tauytarg.*tauytarg)-...
+           1/(2*zk^2).*(hess(:, :, 1).*nxtarg.*nxtarg + hess(:, :, 2).*(2*nxtarg.*nytarg) + hess(:, :, 3).*nytarg.*nytarg));
+
+          
     
   submat = zeros(2*nt,2*ns);
   
@@ -393,27 +271,22 @@ if strcmpi(type, 'free plate first part')
 
 end
 
-% free plate kernel K21 for the modified biharmonic problem. This part
-% handles the singularity subtraction and swap the evaluation to its
-% asymptotic expansions if the targets and sources are close. 
-
-if strcmpi(type, 'free plate K21 first part')
+% free plate kernel K21 first part (biharmonic part only) 
+if strcmpi(type, 'free plate K21 first part bh')
    srcnorm = srcinfo.n;
    srctang = srcinfo.d;
    targnorm = targinfo.n;
    targtang = targinfo.d;
    coefs = varargin{1};
-   %R = 0.001; % radius of kernel replacement
 
-   [~, ~,~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ, true);            % Hankel part
+   [~, ~,~, ~, forth] = flex2d.bhgreen(src, targ);  % biharmonic part
+
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~, ~, ~,~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ, true);     % modified bessel K part 
 
    dx = repmat(srctang(1,:),nt,1);
    dy = repmat(srctang(2,:),nt,1);
@@ -448,32 +321,15 @@ if strcmpi(type, 'free plate K21 first part')
    rtautarg = rx.*tauxtarg + ry.*tauytarg;
 
 
-   submat  = -(1/(2*zk^2).*(forth(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*nx) + forth(:, :, 2).*(nxtarg.*nxtarg.*nxtarg.*ny + 3*nxtarg.*nxtarg.*nytarg.*nx) + ...
+   submat  = -(forth(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*nx) + forth(:, :, 2).*(nxtarg.*nxtarg.*nxtarg.*ny + 3*nxtarg.*nxtarg.*nytarg.*nx) + ...
           forth(:, :, 3).*(3*nxtarg.*nxtarg.*nytarg.*ny + 3*nxtarg.*nytarg.*nytarg.*nx) +...
           forth(:, :, 4).*(3*nxtarg.*nytarg.*nytarg.*ny +nytarg.*nytarg.*nytarg.*nx)+...
-          forth(:, :, 5).*(nytarg.*nytarg.*nytarg.*ny)) -...
-          1/(2*zk^2).*(forthK(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*nx) + forthK(:, :, 2).*(nxtarg.*nxtarg.*nxtarg.*ny + 3*nxtarg.*nxtarg.*nytarg.*nx) + ...
-          forthK(:, :, 3).*(3*nxtarg.*nxtarg.*nytarg.*ny + 3*nxtarg.*nytarg.*nytarg.*nx) +...
-          forthK(:, :, 4).*(3*nxtarg.*nytarg.*nytarg.*ny +nytarg.*nytarg.*nytarg.*nx)+...
-          forthK(:, :, 5).*(nytarg.*nytarg.*nytarg.*ny))) - ...
-          ((2-coefs(1))/(2*zk^2).*(forth(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg.*nx) + forth(:, :, 2).*(tauxtarg.*tauxtarg.*nxtarg.*ny + tauxtarg.*tauxtarg.*nytarg.*nx + 2*tauxtarg.*tauytarg.*nxtarg.*nx)+...
+          forth(:, :, 5).*(nytarg.*nytarg.*nytarg.*ny))  - ...
+          (2-coefs(1)).*(forth(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg.*nx) + forth(:, :, 2).*(tauxtarg.*tauxtarg.*nxtarg.*ny + tauxtarg.*tauxtarg.*nytarg.*nx + 2*tauxtarg.*tauytarg.*nxtarg.*nx)+...
           forth(:, :, 3).*(tauxtarg.*tauxtarg.*nytarg.*ny + 2*tauxtarg.*tauytarg.*nxtarg.*ny + tauytarg.*tauytarg.*nxtarg.*nx + 2*tauxtarg.*tauytarg.*nytarg.*nx)+...
           forth(:, :, 4).*(tauytarg.*tauytarg.*nxtarg.*ny + 2*tauxtarg.*tauytarg.*nytarg.*ny + tauytarg.*tauytarg.*nytarg.*nx) +...
-          forth(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*ny)) -...
-          (2-coefs(1))/(2*zk^2).*(forthK(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg.*nx) + forthK(:, :, 2).*(tauxtarg.*tauxtarg.*nxtarg.*ny + tauxtarg.*tauxtarg.*nytarg.*nx + 2*tauxtarg.*tauytarg.*nxtarg.*nx)+...
-          forthK(:, :, 3).*(tauxtarg.*tauxtarg.*nytarg.*ny + 2*tauxtarg.*tauytarg.*nxtarg.*ny + tauytarg.*tauytarg.*nxtarg.*nx + 2*tauxtarg.*tauytarg.*nytarg.*nx)+...
-          forthK(:, :, 4).*(tauytarg.*tauytarg.*nxtarg.*ny + 2*tauxtarg.*tauytarg.*nytarg.*ny + tauytarg.*tauytarg.*nytarg.*nx) +...
-          forthK(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*ny))) + ...
-          3/(2*pi).*(rn.*rntarg./(r2.^2)) + 3/(2*pi).*(rntarg.^2).*(normaldot)./(r2.^2) -...
-            (2/pi).*(rn.*(rntarg.^3))./(r2.^3) + ...
-            (2-coefs(1)).*(-1/(2*pi).*(tauxtargnsrc).*(tauxtargntarg)./(r2) +...
-            1/(pi).*(rn.*rtautarg.*tauxtargntarg)./(r2.^2) + ...
-            1/(pi).*(rtautarg.*tauxtargnsrc.*rntarg)./(r2.^2) -....
-            2/(pi).*(rn.*rntarg.*(rtautarg.*rtautarg))./(r2.^3) + ...
-            1/(2*pi).*(rn.*rntarg)./(r2.^2)) -...           
-          ((1+coefs(1))/(4*pi)).*((taux.*tauxtarg + tauy.*tauytarg)./(r2) - 2*(rx.*tauxtarg + ry.*tauytarg).*(rx.*taux + ry.*tauy)./(r2.^2))-...
-          (3/(4*pi)).*(nxtarg.*nx + nytarg.*ny)./r2  - (2-coefs(1))/(4*pi).*(nxtarg.*nx + nytarg.*ny)./r2 + ...
-          (2-coefs(1))/(2*pi).*(nxtarg.*nx + nytarg.*ny).*(rx.*tauxtarg + ry.*tauytarg).*(rx.*tauxtarg + ry.*tauytarg)./(r2.^2);
+          forth(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*ny))  - ...           
+          (1+coefs(1))/(4*pi).*((taux.*tauxtarg + tauy.*tauytarg)./(r2) - 2*(rx.*tauxtarg + ry.*tauytarg).*(rx.*taux + ry.*tauy)./(r2.^2));
    % third kernel with singularity subtraction and H[delta']
    % 
  
@@ -489,17 +345,17 @@ if strcmpi(type, 'free plate hilbert subtract')
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~,~,~, third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~,~,~, third, ~] = flex2d.hkdiffgreen(zk, src, targ, true);            % Hankel part
+
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~,~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    [~,grad] = chnk.lap2d.green(src,targ,true); 
 
+   hilb = 2*(grad(:,:,1).*ny - grad(:,:,2).*nx);
   
   
 
@@ -520,7 +376,6 @@ if strcmpi(type, 'free plate hilbert subtract')
    tauytarg = dy1./ds1;
     
 
-   hilb = 2*(grad(:,:,1).*ny - grad(:,:,2).*nx);
 
    submat = -((1+ coefs(1))/2)*(1./(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
         third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
@@ -533,29 +388,31 @@ if strcmpi(type, 'free plate hilbert subtract')
         third(:, :, 4).*(tauytarg.*tauytarg.*tauy)) - ...
         1./(2*zk^2).*(thirdK(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + thirdK(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
        thirdK(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
-        thirdK(:, :, 4).*(tauytarg.*tauytarg.*tauy))) + ((1+ coefs(1))/2)*coefs(1).*0.25*hilb;   % hilbert subtraction 
+        thirdK(:, :, 4).*(tauytarg.*tauytarg.*tauy)));   % hilbert subtraction 
 
 end
 
-% kernels in K21 that are coupled with Hilbert transforms. 
-% (i.e beta* G_{nx nx nx tauy} + (2-nu)*beta*G_{taux taux tauy  nx})
-if strcmpi(type, 'free plate coupled hilbert')                                  
+% parts of free plate integral equation that are coupled to hilbert
+% transform and need to be evaluated with smooth quads (biharmonic part only)
+if strcmpi(type, 'free plate hilbert bh')                                 
+   srcnorm = srcinfo.n;
    srctang = srcinfo.d;
    targnorm = targinfo.n;
    targtang = targinfo.d;
+   targd2 = targinfo.d2;
    coefs = varargin{1};
 
-   [~, ~,~, ~, forth] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
-  
+   [~,~,~, third, ~] = flex2d.bhgreen(src, targ);            % Hankel part
+
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
 
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~, ~,~, ~, forthK] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-  
+   [~,grad] = chnk.lap2d.green(src,targ,true); 
 
-  
+   hilb = 2*(grad(:,:,1).*ny - grad(:,:,2).*nx);
   
 
    dx = repmat(srctang(1,:),nt,1);
@@ -573,29 +430,122 @@ if strcmpi(type, 'free plate coupled hilbert')
 
    tauxtarg = dx1./ds1;
    tauytarg = dy1./ds1;
+
+   d2x1 = repmat((targd2(1,:)).',1,ns);
+   d2y1 = repmat((targd2(2,:)).',1,ns);
+
+   denom = sqrt(dx1.^2 + dy1.^2).^3;
+   numer = dx1.*d2y1 - d2x1.*dy1;
+
+   kappax = numer ./ denom; % target curvature
     
 
+   K11 = -((1+ coefs(1))/2)*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
+        third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
+        third(:, :, 4).*(nytarg.*nytarg.*tauy)) + (1+ coefs(1))/2.*0.25*hilb -...
+       (1+ coefs(1))/2*coefs(1).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
+       third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
+        third(:, :, 4).*(tauytarg.*tauytarg.*tauy)) + (1+ coefs(1))/2*coefs(1).*0.25*hilb;   % hilbert subtraction 
 
-   submat =  -((1+ coefs(1))/2).*(1/(2*zk^2).*(forth(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*taux) + ...
+   K21 = kappax.*(1-coefs(1)).*(-(1+ coefs(1))/2.*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
+       third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
+        third(:, :, 4).*(tauytarg.*tauytarg.*tauy))   + ...
+        (1+ coefs(1))/2.*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
+        third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
+        third(:, :, 4).*(nytarg.*nytarg.*tauy)) );
+
+
+   K12 = 0;
+
+   K22 = 0;
+
+  submat = zeros(2*nt,2*ns);
+  
+  submat(1:2:end,1:2:end) = K11;
+  submat(1:2:end,2:2:end) = K12;
+    
+  submat(2:2:end,1:2:end) = K21;
+  submat(2:2:end,2:2:end) = K22;
+
+end
+
+% kernels in K21 that are coupled with Hilbert transforms. 
+if strcmpi(type, 'free plate hilbert')                                  
+   srctang = srcinfo.d;
+   srcnorm = srcinfo.n;
+   targnorm = targinfo.n;
+   targtang = targinfo.d;
+   targd2 = targinfo.d2;
+   coefs = varargin{1};
+    
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
+  
+   nxtarg = repmat((targnorm(1,:)).',1,ns);
+   nytarg = repmat((targnorm(2,:)).',1,ns);
+
+   dx = repmat(srctang(1,:),nt,1);
+   dy = repmat(srctang(2,:),nt,1);
+
+   dx1 = repmat((targtang(1,:)).',1,ns);
+   dy1 = repmat((targtang(2,:)).',1,ns);
+
+
+   ds = sqrt(dx.*dx+dy.*dy);
+   ds1 = sqrt(dx1.*dx1+dy1.*dy1); 
+
+   taux = dx./ds;                                                                       % normalization
+   tauy = dy./ds;
+
+   d2x1 = repmat((targd2(1,:)).',1,ns);
+   d2y1 = repmat((targd2(2,:)).',1,ns);
+
+   tauxtarg = dx1./ds1;
+   tauytarg = dy1./ds1;
+
+   denom = sqrt(dx1.^2 + dy1.^2).^3;
+   numer = dx1.*d2y1 - d2x1.*dy1;
+
+   kappax = numer ./ denom; % target curvature
+
+   [~, ~,~, third, ~] = flex2d.hkdiffgreen(zk, src, targ, false);            % Hankel part
+   [~, ~,~, ~, forth] = flex2d.hkdiffgreen(zk, src, targ, false);            % Hankel part
+
+   K11 =  -(1+ coefs(1))/2*(1./(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
+        third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
+        third(:, :, 4).*(nytarg.*nytarg.*tauy)) )  -...
+       (1+ coefs(1))/2*coefs(1).*(1./(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
+       third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
+        third(:, :, 4).*(tauytarg.*tauytarg.*tauy)))  + (1+ coefs(1))/2*coefs(1).*0.25*hilb;
+
+   K21 = kappax.*(1-coefs(1)).*(-((1+ coefs(1))/2).*(1./(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
+       third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
+        third(:, :, 4).*(tauytarg.*tauytarg.*tauy)))  + ...
+        ((1+ coefs(1))/2)*(1./(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
+        third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
+        third(:, :, 4).*(nytarg.*nytarg.*tauy)))) ...
+        -(1+ coefs(1))/2.*(1/(2*zk^2).*(forth(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*taux) + ...
           forth(:, :, 2).*(nxtarg.*nxtarg.*nxtarg.*tauy + 3*nxtarg.*nxtarg.*nytarg.*taux) + ...
           forth(:, :, 3).*(3*nxtarg.*nxtarg.*nytarg.*tauy + 3*nxtarg.*nytarg.*nytarg.*taux) +...
           forth(:, :, 4).*(3*nxtarg.*nytarg.*nytarg.*tauy + nytarg.*nytarg.*nytarg.*taux) +...
-          forth(:, :, 5).*(nytarg.*nytarg.*nytarg.*tauy)) - ...
-          1/(2*zk^2).*(forthK(:, :, 1).*(nxtarg.*nxtarg.*nxtarg.*taux) + ...
-          forthK(:, :, 2).*(nxtarg.*nxtarg.*nxtarg.*tauy + 3*nxtarg.*nxtarg.*nytarg.*taux) + ...
-          forthK(:, :, 3).*(3*nxtarg.*nxtarg.*nytarg.*tauy + 3*nxtarg.*nytarg.*nytarg.*taux) +...
-          forthK(:, :, 4).*(3*nxtarg.*nytarg.*nytarg.*tauy + nytarg.*nytarg.*nytarg.*taux) +...
-          forthK(:, :, 5).*(nytarg.*nytarg.*nytarg.*tauy))) -...
+          forth(:, :, 5).*(nytarg.*nytarg.*nytarg.*tauy)) ) - ...
           ((2-coefs(1))/2)*(1+coefs(1)).*(1/(2*zk^2).*(forth(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg.*taux) + ...
           forth(:, :, 2).*(tauxtarg.*tauxtarg.*nxtarg.*tauy + tauxtarg.*tauxtarg.*nytarg.*taux + 2*tauxtarg.*tauytarg.*nxtarg.*taux) + ...
           forth(:, :, 3).*(tauxtarg.*tauxtarg.*nytarg.*tauy + 2*tauxtarg.*tauytarg.*nxtarg.*tauy + tauytarg.*tauytarg.*nxtarg.*taux + 2*tauxtarg.*tauytarg.*nytarg.*taux) +...
           forth(:, :, 4).*(tauytarg.*tauytarg.*nxtarg.*tauy + 2*tauxtarg.*tauytarg.*nytarg.*tauy + tauytarg.*tauytarg.*nytarg.*taux) +...
-         forth(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*tauy)) - ...
-         1/(2*zk^2).*(forthK(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg.*taux) + ...
-         forthK(:, :, 2).*(tauxtarg.*tauxtarg.*nxtarg.*tauy + tauxtarg.*tauxtarg.*nytarg.*taux + 2*tauxtarg.*tauytarg.*nxtarg.*taux) + ...
-         forthK(:, :, 3).*(tauxtarg.*tauxtarg.*nytarg.*tauy + 2*tauxtarg.*tauytarg.*nxtarg.*tauy + tauytarg.*tauytarg.*nxtarg.*taux + 2*tauxtarg.*tauytarg.*nytarg.*taux) +...
-         forthK(:, :, 4).*(tauytarg.*tauytarg.*nxtarg.*tauy + 2*tauxtarg.*tauytarg.*nytarg.*tauy + tauytarg.*tauytarg.*nytarg.*taux) +...
-         forthK(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*tauy)));
+         forth(:, :, 5).*(tauytarg.*tauytarg.*nytarg.*tauy)) ) ;
+
+  K12 = 0;
+
+  K22 = 0;
+
+  submat = zeros(2*nt,2*ns);
+  
+  submat(1:2:end,1:2:end) = K11;
+  submat(1:2:end,2:2:end) = K12;
+    
+  submat(2:2:end,1:2:end) = K21;
+  submat(2:2:end,2:2:end) = K22;
     
 end
 
@@ -649,25 +599,24 @@ end
 % Updated part in K21 that is coupled with Hilbert transform. 
 %(i.e. (1-nu)*(beta*(G_{taux taux tauy} + 1/4 H) - beta*(G_{nx nx tauy} + 1/4 H)). 
 
-if strcmpi(type, 'free plate K21 hilbert part')                                                         
+if strcmpi(type, 'free plate K21 hilbert part bh')                                                         
    srcnorm = srcinfo.n;
    srctang = srcinfo.d;
    targnorm = targinfo.n;
    targtang = targinfo.d;
    coefs = varargin{1};
 
-   [~, ~, ~,third, ~] = flex2d.helmdiffgreen(zk, src, targ);            % Hankel part
+   [~, ~, ~,third, ~] = flex2d.bhgreen(zk, src, targ);            % Hankel part
+   third = 2*zk^2*third; 
+
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
 
    nxtarg = repmat((targnorm(1,:)).',1,ns);
    nytarg = repmat((targnorm(2,:)).',1,ns);
 
-   zkimag = (1i)*zk;
-   [~, ~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
    [~,grad] = chnk.lap2d.green(src,targ,true); 
-
-  
+   hilb = 2*(grad(:,:,1).*ny - grad(:,:,2).*nx);
   
 
    dx = repmat(srctang(1,:),nt,1);
@@ -687,7 +636,6 @@ if strcmpi(type, 'free plate K21 hilbert part')
    tauytarg = dy1./ds1;
     
 
-   hilb = 2*(grad(:,:,1).*ny - grad(:,:,2).*nx);
 
    submat =  (1-coefs(1)).*(-((1+ coefs(1))/2).*(1./(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
        third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
@@ -705,6 +653,58 @@ if strcmpi(type, 'free plate K21 hilbert part')
 
 
 end
+
+if strcmpi(type, 'free plate K21 hilbert part')                                                         
+   srcnorm = srcinfo.n;
+   srctang = srcinfo.d;
+   targnorm = targinfo.n;
+   targtang = targinfo.d;
+   coefs = varargin{1};
+
+   [~, ~, ~,third, ~] = flex2d.hkdiffgreen(zk, src, targ, true);            % Hankel part
+
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
+
+   nxtarg = repmat((targnorm(1,:)).',1,ns);
+   nytarg = repmat((targnorm(2,:)).',1,ns);
+  
+
+   dx = repmat(srctang(1,:),nt,1);
+   dy = repmat(srctang(2,:),nt,1);
+
+   dx1 = repmat((targtang(1,:)).',1,ns);
+   dy1 = repmat((targtang(2,:)).',1,ns);
+
+
+   ds = sqrt(dx.*dx+dy.*dy);
+   ds1 = sqrt(dx1.*dx1+dy1.*dy1); 
+
+   taux = dx./ds;                                                                       % normalization
+   tauy = dy./ds;
+
+   tauxtarg = dx1./ds1;
+   tauytarg = dy1./ds1;
+    
+
+   submat =  (1-coefs(1)).*(-((1+ coefs(1))/2).*(1./(2*zk^2).*(third(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + third(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
+       third(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
+        third(:, :, 4).*(tauytarg.*tauytarg.*tauy)) - ...
+        1./(2*zk^2).*(thirdK(:, :, 1).*(tauxtarg.*tauxtarg.*taux) + thirdK(:, :, 2).*(tauxtarg.*tauxtarg.*tauy + 2*tauxtarg.*tauytarg.*taux) +...
+       thirdK(:, :, 3).*(2*tauxtarg.*tauytarg.*tauy + tauytarg.*tauytarg.*taux) +...
+        thirdK(:, :, 4).*(tauytarg.*tauytarg.*tauy)))  + ...
+        ((1+ coefs(1))/2)*(1./(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
+        third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
+        third(:, :, 4).*(nytarg.*nytarg.*tauy)) - ...
+        1./(2*zk^2).*(thirdK(:, :, 1).*(nxtarg.*nxtarg.*taux) + thirdK(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
+        thirdK(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
+        thirdK(:, :, 4).*(nytarg.*nytarg.*tauy))))  ;  % + ((1+ coefs(1))/2).*0.25*hilb - ((1+ coefs(1))/2).*0.25*hilb)
+
+
+
+end
+
+
 
 % Updated part in K22. (i.e. (1-nu)*(G_{taux taux} - G_{nx nx})
 
@@ -764,7 +764,6 @@ if strcmpi(type, 'free plate hilbert unsubtract')
 
    zkimag = (1i)*zk;
    [~,~, ~, thirdK, ~] = flex2d.helmdiffgreen(zkimag, src, targ);     % modified bessel K part
-   [~,grad] = chnk.lap2d.green(src,targ,true); 
 
   
   
@@ -786,7 +785,6 @@ if strcmpi(type, 'free plate hilbert unsubtract')
    tauytarg = dy1./ds1;
     
 
-   hilb = 2*(grad(:,:,1).*ny - grad(:,:,2).*nx);
 
    submat = -((1+ coefs(1))/2)*(1./(2*zk^2).*(third(:, :, 1).*(nxtarg.*nxtarg.*taux) + third(:, :, 2).*(nxtarg.*nxtarg.*tauy+ 2*nxtarg.*nytarg.*taux) +...
         third(:, :, 3).*(2*nxtarg.*nytarg.*tauy +nytarg.*nytarg.*taux) +...
