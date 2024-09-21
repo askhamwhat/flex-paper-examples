@@ -7,7 +7,7 @@ clear
 % 
 % zk = 0.1;               % our k (wave number)
 
-maxchunklens = [3 2 1 0.7 0.5 0.45]; 
+maxchunklens = [3 2 1 0.7 0.5]; 
 npts = maxchunklens*0;
 free_errors = maxchunklens*0;
 clamped_errors = maxchunklens*0;
@@ -123,16 +123,16 @@ for i = 1:numel(npts)
     % free plate
 
     fkern1 =  @(s,t) flex2d.kern(zk, s, t, 'free plate first part', coefs);        % build the desired kernel
-    fkern2 =  @(s,t) flex2d.kern(zk, s, t, 'free plate K21 first part bh', coefs);        % build the desired kernel
-    fkern3 =  @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert bh', coefs);        % build the desired kernel
-    fkern4 =  @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert', coefs);        % build the desired kernel
+    fkern1bh =  @(s,t) flex2d.kern(zk, s, t, 'free plate first part bh', coefs);        % build the desired kernel
+    fkern2bh =  @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert bh', coefs);        % build the desired kernel
+    fkern2 =  @(s,t) flex2d.kern(zk, s, t, 'free plate hilbert', coefs);        % build the desired kernel
     double = @(s,t) lap2d.kern(s,t,'d',coefs);
     hilbert = @(s,t) lap2d.kern(s,t,'hilb',coefs);
 
     sysmat1 = chunkermat(chnkr,fkern1, opts);
-    sysmat1bh = chunkermat(chnkr,fkern2, opts2);
-    sysmat2bh = chunkermat(chnkr,fkern3, opts2);
-    sysmat3 = chunkermat(chnkr,fkern4, opts);
+    sysmat1bh = chunkermat(chnkr,fkern1bh, opts2);
+    sysmat2bh = chunkermat(chnkr,fkern2bh, opts2);
+    sysmat2 = chunkermat(chnkr,fkern2, opts);
 
     D = chunkermat(chnkr, double, opts);
 
@@ -144,17 +144,16 @@ for i = 1:numel(npts)
     % Perform diagonal replacement for smooth quads here
 
     sysmat1bh(isnan(sysmat1bh)) = 0;
-    sysmat1bh = sysmat1bh + diag((-5+4*nu)/(12*pi)*kappa.^2.*chnkr.wts(:));
-    % sysmat1(2:2:end,1:2:end) = sysmat1(2:2:end,1:2:end) + sysmat1bh;
+    sysmat1bh(2:2:end,1:2:end) = sysmat1bh(2:2:end,1:2:end) + diag((-3+3*nu)/(8*pi)*kappa.^2.*chnkr.wts(:));
+    sysmat1 = sysmat1 + sysmat1bh;
 
     sysmat2bh(isnan(sysmat2bh)) = 0;
+    sysmat2 = sysmat2 + sysmat2bh;
 
-    sysmat2bh(1:2:end,1:2:end) = sysmat2bh(1:2:end,1:2:end)*H;
-    sysmat2bh(2:2:end,1:2:end) = sysmat2bh(2:2:end,1:2:end)*H;
-    sysmat3(1:2:end,1:2:end) = sysmat3(1:2:end,1:2:end)*H  - 2*((1+nu)/2)^2*D*D;
-    sysmat3(2:2:end,1:2:end) = sysmat3(2:2:end,1:2:end)*H;
+    sysmat2(1:2:end,1:2:end) = sysmat2(1:2:end,1:2:end)*H  - 2*((1+nu)/2)^2*D*D;
+    sysmat2(2:2:end,1:2:end) = sysmat2(2:2:end,1:2:end)*H;
 
-    sysmat = sysmat1 + sysmat3 ;
+    sysmat = sysmat1 + sysmat2 ;
 
     D = [-1/2 + (1/8)*(1+nu).^2, 0; 0, 1/2];                                     % jump matrix (for exterior problem)
     D = kron(eye(chnkr.npt), D);
