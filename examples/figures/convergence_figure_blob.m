@@ -7,7 +7,7 @@ clear
 % 
 % zk = 0.1;               % our k (wave number)
 
-maxchunklens = [3 2 1 0.7 0.5]; 
+maxchunklens = [3 2.5 2 1.2  0.8 0.75  0.6 ]; 
 npts = maxchunklens*0;
 free_errors = maxchunklens*0;
 clamped_errors = maxchunklens*0;
