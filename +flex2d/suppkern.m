@@ -381,7 +381,7 @@ end
 
 
 % supported plate kernel for modified biharmonic problem
-if strcmpi(type, 'supported plate blob')
+if strcmpi(type, 'supported plate droplet')
     srcnorm = srcinfo.n;
     srctang = srcinfo.d;
     srcd2 = srcinfo.d2;
@@ -432,7 +432,7 @@ if strcmpi(type, 'supported plate blob')
     xs = repmat(src(1,:),nt,1);
     ys = repmat(src(2,:),nt,1);
     
-    % Blob: 
+    % droplet: 
     
     a = 2;
     b = 1;
@@ -886,7 +886,7 @@ end
 
 
 % supported plate kernel K21 for the flexural wave equation
-if strcmpi(type, 'supported plate K21 blob')
+if strcmpi(type, 'supported plate K21 droplet')
     srcnorm = srcinfo.n;
     srctang = srcinfo.d;
     srcd2 = srcinfo.d2;
@@ -935,7 +935,7 @@ if strcmpi(type, 'supported plate K21 blob')
     xs = repmat(src(1,:),nt,1);
     ys = repmat(src(2,:),nt,1);
     
-    % Blob: 
+    % droplet: 
     
       a = 2;
     b = 1;
@@ -1399,7 +1399,7 @@ end
 
 
 % first kernel of evaluation for the support plate
-if strcmpi(type, 'supported plate K1 eval blob')
+if strcmpi(type, 'supported plate K1 eval droplet')
     srcnorm = srcinfo.n;
     srctang = srcinfo.d;
     srcd2 = srcinfo.d2;
@@ -1441,7 +1441,7 @@ if strcmpi(type, 'supported plate K1 eval blob')
     xs = repmat(src(1,:),nt,1);
     ys = repmat(src(2,:),nt,1);
     
-    % Blob: 
+    % droplet: 
     
     a = 2;
     b = 1;
