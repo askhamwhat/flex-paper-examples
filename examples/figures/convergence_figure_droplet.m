@@ -7,7 +7,7 @@ clear
 % 
 % zk = 0.1;               % our k (wave number)
 
-maxchunklens = [3 2.5 2 1.2  0.8 0.75  0.6 ]; 
+maxchunklens = [3 2.7 2.5 2 1.2  0.8 0.75  0.6 ]; 
 npts = maxchunklens*0;
 free_errors = maxchunklens*0;
 clamped_errors = maxchunklens*0;
@@ -118,7 +118,7 @@ for i = 1:numel(npts)
     uerr = utarg - true_sol;
 %    uerr = uerr ./  max(abs(true_sol));
     uerr = uerr ./  (chnkr.wts(:).'*(abs(rho1) + abs(rho2)));
-    clamped_errors(i) = sum(abs(uerr));
+    clamped_errors(i) = max(abs(uerr));
 
     % free plate
 
@@ -219,7 +219,7 @@ for i = 1:numel(npts)
     uerr = utarg - true_sol;
 %    uerr = uerr ./  max(abs(true_sol));
     uerr = uerr ./  (chnkr.wts(:).'*(abs(rho1) + abs(rho2)));
-    free_errors(i) = sum(abs(uerr));
+    free_errors(i) = max(abs(uerr));
 
     % supported plate
 
@@ -331,7 +331,7 @@ for i = 1:numel(npts)
     uerr = utarg - true_sol;
 %    uerr = uerr ./  max(abs(true_sol));
     uerr = uerr ./  (chnkr.wts(:).'*(abs(rho1) + abs(rho2)));
-    supported_errors(i) = sum(abs(uerr));
+    supported_errors(i) = max(abs(uerr));
 end
 
 %%
@@ -342,7 +342,7 @@ nexttile
 loglog(npts , clamped_errors, '.-', npts, free_errors,'.-', npts, supported_errors,'.-', MarkerSize=20)
 %loglog(npts, supported_errors,'.-', MarkerSize=20)
 hold on 
-loglog(npts(2:end-2), 10^17.5*npts(2:end-2).^(-12),'--k')
+loglog(npts(2:end-2), 10^19*npts(2:end-2).^(-12),'--k')
 hold on
 %legend('supported plate','n^{-12}')
 legend('Clamped Plate','Free Plate','Supported Plate', 'n^{-12}')
