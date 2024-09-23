@@ -342,10 +342,10 @@ nexttile
 loglog(npts , clamped_errors, '.-', npts, free_errors,'.-', npts, supported_errors,'.-', MarkerSize=20)
 %loglog(npts, supported_errors,'.-', MarkerSize=20)
 hold on 
-loglog(npts, 10^9*npts.^(-8),'--k')
+loglog(npts(2:end-2), 10^17.5*npts(2:end-2).^(-12),'--k')
 hold on
 %legend('supported plate','n^{-12}')
-legend('Clamped Plate','Free Plate','Supported Plate', 'n^{-8}')
+legend('Clamped Plate','Free Plate','Supported Plate', 'n^{-12}')
 xlabel('N')
 ylabel('Relative error')
 title('Analytic solution test')
