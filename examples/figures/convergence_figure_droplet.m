@@ -7,13 +7,13 @@ clear
 % 
 % zk = 0.1;               % our k (wave number)
 
-maxchunklens = [3 2.7 2.5 2 1.2  0.8 0.75  0.6 ]; 
+maxchunklens = [ 2.7 2.5  1.8  1.2  0.8 0.75 0.7  ]; 
 npts = maxchunklens*0;
 free_errors = maxchunklens*0;
 clamped_errors = maxchunklens*0;
 supported_errors = maxchunklens*0;
 
-zk = 6;
+zk = 8;
 nu = 1/3;
 cparams = [];
 
@@ -342,10 +342,10 @@ nexttile
 loglog(npts , clamped_errors, '.-', npts, free_errors,'.-', npts, supported_errors,'.-', MarkerSize=20)
 %loglog(npts, supported_errors,'.-', MarkerSize=20)
 hold on 
-loglog(npts(2:end-2), 10^19*npts(2:end-2).^(-12),'--k')
+loglog(npts(2:end-2), 10^26.5.*npts(2:end-2).^(-16),'--k')
 hold on
 %legend('supported plate','n^{-12}')
-legend('Clamped Plate','Free Plate','Supported Plate', 'n^{-12}')
+legend('Clamped Plate','Free Plate','Supported Plate', 'n^{-16}')
 xlabel('N')
 ylabel('Relative error')
 title('Analytic solution test')

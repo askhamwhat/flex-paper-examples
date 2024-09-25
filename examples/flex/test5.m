@@ -6,7 +6,7 @@ source_loc = [2.5;2.5];
 zk = 6;  % our k (wave number)
 nu = 1/3; % Poisson ratio
 cparams = [];
-cparams.maxchunklen = 0.5 / zk; % max chunk size
+cparams.maxchunklen = 4 / zk; % max chunk size
 narms = 5; % number of arms on the starfish
 
 s = 5; % spacing
@@ -17,6 +17,7 @@ centers = centers + 0.5*(rand(size(centers))-0.5);
 temp = [centers, abs(centers(:,1) - centers(:,2))];
 temp = sortrows(temp, 3);
 centers = temp(1:n_objs,1:2);
+plot(centers(:,1),centers(:,2),'o');
 
 % Generating chnkr objects
 
@@ -139,7 +140,7 @@ fprintf('%5.2f s : time for full matrix generation \n',t2)
 %%%%%%%%%%%%%%%%%%% solve
 
 rhs = zeros(ntot,1);
-theta = pi/3;
+theta = pi/4;
 dir = [cos(theta);sin(theta)];
 for ichk = 1:n_objs
 
@@ -170,8 +171,8 @@ fprintf('%5.2f s : time for solve \n',t2)
 
 targ   = [];
 
-xs = -s/2:s/100:box_size+s/2;                                    % generate some targets
-ys = -s/2:s/100:box_size+s/2; 
+xs = -s:s/50:box_size+s;                                    % generate some targets
+ys = -s:s/50:box_size+s; 
 [X,Y] = meshgrid(xs, ys);
 sz = size(X);
 targets = [X(:).'; Y(:).'];
@@ -218,17 +219,32 @@ trueval = exp(1i*zk*(targ.r(1,:)*dir(1)+targ.r(2,:)*dir(2)));
 utarg = zeros(na, 1);
 utarg(out) = -utot+trueval.';
 utarg(~out) = NaN;
-
 utarg = reshape(utarg,sz);
-hold off;
-h = pcolor(X,Y,abs(utarg));
-set(h,'EdgeColor','None'); hold on;
-title("BIE solution")
+
+%%
+
+% chnkrs = load("chnkrs.mat");
+% chnkrs = chnkrs.chnkrs;
+% s = 5; % spacing
+% box_size = s*ceil(sqrt(88))-s;
+% xs = -s:s/50:box_size+s;                                    % generate some targets
+% ys = -s:s/50:box_size+s; 
+% [X,Y] = meshgrid(xs, ys);
+
+%h = pcolor(X,Y,abs(utarg));
+%h.FaceColor = 'interp';
+%set(h,'EdgeColor','None'); hold on;
+%title("BIE solution")
 for ii=1:n_objs
-    plot(chnkrs{ii},'w-','LineWidth',2); hold on;
-   % scatter(sout{ii}.pxypts(1,:),sout{ii}.pxypts(2,:),1,'color','red')
+   %plot(chnkrs{ii},'k-','LineWidth',2); hold on;
+   %scatter(sout{ii}.pxypts(1,:),sout{ii}.pxypts(2,:),1,'color','red')
 end
+hold on
+%plot([45, 45 + 11*dir(1)],[0, 11*dir(2)])
 colorbar
+axis off
+xlim([-4, max(X(:))])
+ylim([-4, max(Y(:))])
 caxis([0,3])
 
 
