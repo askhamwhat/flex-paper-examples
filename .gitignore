@@ -1,7 +1,5 @@
 *.svg
 *.png
 *.pdf
-
-!flexural_wave_manuscript_arXiv/
+!flexural_wave_manuscript_arXiv/*.pdf
 miscellaneous/
-
