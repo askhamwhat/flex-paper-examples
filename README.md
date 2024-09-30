@@ -1,6 +1,6 @@
 # flex-paper-examples
 
-Repository used for solving flexural wave BIEs and running examples found in [citation]. 
+Repository used for running examples found in [citation]. 
 
 ## Dependencies
 
