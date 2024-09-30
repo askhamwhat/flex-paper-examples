@@ -1,7 +1,7 @@
 clear
 addpath(genpath(pwd))
 
-% CREATING GEOMETRY  - remember to check kappa prime in kern.m
+% CREATING GEOMETRY  - remember to change kappa prime calculation in kern.m
 
 zk = 3;
 nu = 0.3;
@@ -12,7 +12,7 @@ theta = 0;
 d = -[cos(theta) sin(theta)];
 
 chnkr = chunkerfunc(@(t) starfish3arms(t), cparams);
-chnkr = chnkr.move([0;0],[0;0],0,1);
+chnkr = chnkr.move([0;0],[0;0],pi/3,1);
 chnkr = chnkr.sort();
 centre = [0; 0];
 coefs = nu;
@@ -126,26 +126,22 @@ set(gca, 'XTickLabel', {'-\pi','-\pi/2','0','\pi/2','\pi'})
 hold on 
 
 ylabel('|u^{(s)}|')
-xlabel('\theta')
-
 title('Magnitude of scattered field')
 
 nexttile(3)
 phase = atan2(imag(ufar),real(ufar));
-phase(logical((phase > 0).*(thetas < -pi/3)')) = phase(logical((phase > 0).*(thetas < -pi/3)')) - 2*pi;
-phase(logical((phase > 0).*(thetas > pi/3)')) = phase(logical((phase > 0).*(thetas > pi/3)')) - 2*pi;
+phase(logical((phase > 0).*(thetas < -pi/2)')) = phase(logical((phase > 0).*(thetas < -pi/2)')) - 2*pi;
+phase(logical((phase > 0).*(thetas > pi/2)')) = phase(logical((phase > 0).*(thetas > pi/2)')) - 2*pi;
 plot(thetas, phase, 'Color', blue)
 %plot(thetas, real(ufar)./abs(ufar))
 xlim([-pi pi])
 set(gca, 'XTick', -pi:pi/2:pi)
 set(gca, 'XTickLabel', {'-\pi','-\pi/2','0','\pi/2','\pi'})
-set(gca, 'YTick', -pi:pi/2:pi)
-set(gca, 'YTickLabel', {'-\pi','-\pi/2','0','\pi/2','\pi'})
+set(gca, 'YTick', -3*pi/2:pi/2:pi)
+set(gca, 'YTickLabel', {'-3\pi/2','-\pi','-\pi/2','0','\pi/2','\pi'})
 hold on
 
 ylabel('\phi')
-xlabel('\theta')
-
 title('Phase of scattered field')
 
 
@@ -283,15 +279,14 @@ plot(thetas, abs(ufar), 'Color', red)
 
 nexttile(3)
 phase = atan2(imag(ufar),real(ufar));
-phase(logical((phase > 0).*(thetas < -7*pi/12)')) = phase(logical((phase > 0).*(thetas < -7*pi/12)')) - 2*pi;
-phase(logical((phase > 0).*(thetas > 7*pi/12)')) = phase(logical((phase > 0).*(thetas > 7*pi/12)')) - 2*pi;
+phase((phase > 0)) = phase((phase > 0)) - 2*pi;
 plot(thetas, phase, 'Color', red)
 %plot(thetas, real(ufar)./abs(ufar))
 
 % SUPPORTED PLATE
 
 coefs = [nu; 0];
-ikern1 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate starfish 3arms 1',coefs);           % build the desired kernel
+ikern1 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate starfish 3arms 2',coefs);           % build the desired kernel
 
 opts = [];
 opts.sing = 'log';
@@ -354,8 +349,9 @@ rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);  % second density
 
 
-ikern1 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K1 eval starfish 3arms 1',coefs);                              % build the kernel of evaluation          
+ikern1 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K1 eval starfish 3arms 2',coefs);                              % build the kernel of evaluation          
 ikern2 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K2 eval',coefs);
+
 
 start1 = tic;
 ufar = chunkerkerneval(chnkr, ikern1, rho1, targets) + ...
@@ -369,7 +365,10 @@ plot(thetas, abs(ufar), 'Color', orange)
 hold on 
 
 nexttile(3)
-plot(thetas, atan2(imag(ufar),real(ufar)), 'Color', orange)
+phase = atan2(imag(ufar),real(ufar));
+phase(logical((phase > 0).*(thetas < -pi/2)')) = phase(logical((phase > 0).*(thetas < -pi/2)')) - 2*pi;
+phase(logical((phase > 0).*(thetas > pi/2)')) = phase(logical((phase > 0).*(thetas > pi/2)')) - 2*pi;
+plot(thetas, phase, 'Color', orange)
 %plot(thetas, real(ufar)./abs(ufar))
 hold on 
 
@@ -416,7 +415,10 @@ nexttile(2)
 plot(thetas, abs(ufar),  '--', 'Color', blue)
 
 nexttile(3)
-plot(thetas, atan2(imag(ufar),real(ufar)), '--', 'Color', blue)
+phase = atan2(imag(ufar),real(ufar));
+phase(logical((phase > 0).*(thetas < -pi/2)')) = phase(logical((phase > 0).*(thetas < -pi/2)')) - 2*pi;
+phase(logical((phase > 0).*(thetas > pi/2)')) = phase(logical((phase > 0).*(thetas > pi/2)')) - 2*pi;
+plot(thetas, phase, '--', 'Color', blue)
 %plot(thetas, real(ufar) ./ abs(ufar), '--')
 
 % HELMHOLTZ NEUMANN
@@ -446,7 +448,9 @@ nexttile(2)
 plot(thetas, abs(ufar),  '--','Color', red)
 
 nexttile(3)
-plot(thetas, atan2(imag(ufar),real(ufar)), '--', 'Color', red)
+phase = atan2(imag(ufar),real(ufar));
+phase((phase > 0)) = phase((phase > 0)) - 2*pi;
+plot(thetas, phase, '--', 'Color', red)
 % plot(thetas, real(ufar) ./ abs(ufar), '--')
 
 
@@ -455,7 +459,7 @@ plot(thetas, atan2(imag(ufar),real(ufar)), '--', 'Color', red)
 legend('Clamped','Free','Supported','Dirichlet (Helmholtz)', 'Neumann (Helmholtz)', 'Location','eastoutside')
 
 
-rmpath(genpath(pwd))
+rmpath(genpath(pw))
 
 
 

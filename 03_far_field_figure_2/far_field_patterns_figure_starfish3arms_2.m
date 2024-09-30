@@ -1,5 +1,5 @@
 clear
-clc
+addpath(genpath(pwd))
 
 % CREATING GEOMETRY  - remember to change kappa prime calculation in kern.m
 
@@ -156,8 +156,8 @@ fkern =  @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate first part', coefs);     
 
 fkern1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate hilbert subtract', coefs);                   % hilbert subtraction kernels in K11
 fkern2 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate coupled hilbert', coefs);   
-hilbert = @(s,t) chnk.lap2d.kern(s, t, 'hilb');
-double = @(s,t) chnk.lap2d.kern(s,t, 'd');
+hilbert = @(s,t) lap2d.kern(s, t, 'hilb');
+double = @(s,t) lap2d.kern(s,t, 'd');
 
 fkern3 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate K21 first part', coefs);                     % singularity subtration kernel in K21 (including swapping its Asmyptotics expansions)
 
@@ -286,7 +286,7 @@ plot(thetas, phase, 'Color', red)
 % SUPPORTED PLATE
 
 coefs = [nu; 0];
-ikern1 =  @(s,t) chnk.flex2d.kern(zk, s, t, 'supported plate 3',coefs);           % build the desired kernel
+ikern1 =  @(s,t) flex2d.suppkern(zk, s, t, 'supported plate starfish 3arms 2',coefs);           % build the desired kernel
 
 opts = [];
 opts.sing = 'log';
@@ -349,8 +349,9 @@ rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);  % second density
 
 
-ikern1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'supported plate K1 eval 3',coefs);                              % build the kernel of evaluation          
-ikern2 = @(s,t) chnk.flex2d.kern(zk, s, t, 'supported plate K2 eval 3',coefs);
+ikern1 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K1 eval starfish 3arms 2',coefs);                              % build the kernel of evaluation          
+ikern2 = @(s,t) flex2d.suppkern(zk, s, t, 'supported plate K2 eval',coefs);
+
 
 start1 = tic;
 ufar = chunkerkerneval(chnkr, ikern1, rho1, targets) + ...
@@ -458,6 +459,7 @@ plot(thetas, phase, '--', 'Color', red)
 legend('Clamped','Free','Supported','Dirichlet (Helmholtz)', 'Neumann (Helmholtz)', 'Location','eastoutside')
 
 
+rmpath(genpath(pwd))
 
 
 
