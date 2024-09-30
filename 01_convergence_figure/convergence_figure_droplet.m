@@ -361,3 +361,6 @@ ylim([-2.5 2.5])
 
 % Integral of absolute value of density on boundary 
 % Maximum of density on boundary 
+
+
+rmpath(genpath(pwd)) 

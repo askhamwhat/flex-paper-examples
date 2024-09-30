@@ -1,4 +1,6 @@
 % Parameters
+clear 
+addpath(genpath(pwd))
 
 n_objs = 101; % number of objects
 source_loc = [-3;0]; % location of test source
@@ -71,6 +73,8 @@ sout = {};
 chnkrs = {};
 narm = datasample([3 4 5 6], n_objs, 'Weights',[0.3 0.25 0.25 0.25]);
 
+figure(1)
+
 for i = 1:n_objs
     %narm = round(rand(1)*4 - 0.5)+3; % between 3 and 6 and change amp 
     amp = 0.15 + 0.3*rand;
@@ -83,7 +87,7 @@ for i = 1:n_objs
     end
 
     chnkr = chunkerfunc(@(t) starfish(t,narm(i),amp,[0,0],0, 1), cparams);
-    chnkr = chnkr.move([0;0],centers(i,:)',rot,1);
+    chnkr = chnkr.move([0;0],centers(i,:)',rot,0.9);
     plot(chnkr,'k-','LineWidth',2); hold on;
     drawnow
     %chnkrs(i) = chnkr;
@@ -235,7 +239,7 @@ utarg = reshape(utarg,sz);
 
 %%
 
-figure(1)
+figure(2)
 for ii=1:n_objs
    plot(chnkrs{ii},'k-','LineWidth',2); hold on;
    %scatter(sout{ii}.pxypts(1,:),sout{ii}.pxypts(2,:),1,'color','red')
@@ -248,7 +252,7 @@ hold on
 plot([40 40+11],[0 11])
 colorbar
 
-figure(2)
+figure(3)
 h = pcolor(X,Y,abs(utarg));
 %h.FaceColor = 'interp';
 set(h,'EdgeColor','None'); hold on;
@@ -256,3 +260,6 @@ axis off
 xlim([-4, max(X(:))])
 ylim([-4, max(Y(:))])
 caxis([0,3])
+
+
+rmpath(genpath(pwd))
