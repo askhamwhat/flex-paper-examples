@@ -7,13 +7,12 @@ zk = 6;  % our k (wave number)
 nu = 1/3; % Poisson ratio
 cparams = [];
 cparams.maxchunklen = 4 / zk; % max chunk size
-narms = 5; % number of arms on the starfish
 
 s = 5; % spacing
 box_size = s*ceil(sqrt(n_objs))-s;
 [xs, ys] = meshgrid(0:s:box_size,0:s:box_size);
 centers = [xs(:) ys(:)];
-centers = centers + 0.5*(rand(size(centers))-0.5);
+centers = centers + 0.*(rand(size(centers))-0.5);
 temp = [centers, abs(centers(:,1) - centers(:,2))];
 temp = sortrows(temp, 3);
 centers = temp(1:n_objs,1:2);
@@ -70,10 +69,23 @@ tgen = tic;
 sout = {};
 %chnkrs = createArray(n_objs,1,'chunker');
 chnkrs = {};
+narm = datasample([3 4 5 6], n_objs, 'Weights',[0.3 0.25 0.25 0.25]);
+
 for i = 1:n_objs
-    narm = round(rand(1))*3+3;
-    chnkr = chunkerfunc(@(t) starfish(t,narm), cparams);
-    chnkr = chnkr.move([0;0],centers(i,:)',2*i,1);
+    %narm = round(rand(1)*4 - 0.5)+3; % between 3 and 6 and change amp 
+    amp = 0.15 + 0.3*rand;
+
+    if (i == 1) || (i == 12) || (i == 13) 
+        rot = -pi/12;
+        narm(i) = 3;
+    else 
+        rot = 2*pi*rand;
+    end
+
+    chnkr = chunkerfunc(@(t) starfish(t,narm(i),amp,[0,0],0, 1), cparams);
+    chnkr = chnkr.move([0;0],centers(i,:)',rot,1);
+    plot(chnkr,'k-','LineWidth',2); hold on;
+    drawnow
     %chnkrs(i) = chnkr;
     sout{i} = skel_chnkr(chnkr,nu,zk,coefs,kerns,pxypts);
     chnkrs{i} = chnkr;
@@ -171,8 +183,8 @@ fprintf('%5.2f s : time for solve \n',t2)
 
 targ   = [];
 
-xs = -s:s/50:box_size+s;                                    % generate some targets
-ys = -s:s/50:box_size+s; 
+xs = -s:s/80:box_size+s;                                    % generate some targets
+ys = -s:s/80:box_size+s; 
 [X,Y] = meshgrid(xs, ys);
 sz = size(X);
 targets = [X(:).'; Y(:).'];
@@ -223,31 +235,24 @@ utarg = reshape(utarg,sz);
 
 %%
 
-% chnkrs = load("chnkrs.mat");
-% chnkrs = chnkrs.chnkrs;
-% s = 5; % spacing
-% box_size = s*ceil(sqrt(88))-s;
-% xs = -s:s/50:box_size+s;                                    % generate some targets
-% ys = -s:s/50:box_size+s; 
-% [X,Y] = meshgrid(xs, ys);
-
-%h = pcolor(X,Y,abs(utarg));
-%h.FaceColor = 'interp';
-%set(h,'EdgeColor','None'); hold on;
-%title("BIE solution")
+figure(1)
 for ii=1:n_objs
-   %plot(chnkrs{ii},'k-','LineWidth',2); hold on;
+   plot(chnkrs{ii},'k-','LineWidth',2); hold on;
    %scatter(sout{ii}.pxypts(1,:),sout{ii}.pxypts(2,:),1,'color','red')
 end
 hold on
-%plot([45, 45 + 11*dir(1)],[0, 11*dir(2)])
+xlim([-4, max(X(:))])
+ylim([-4, max(Y(:))])
+caxis([0,3])
+hold on 
+plot([40 40+11],[0 11])
 colorbar
+
+figure(2)
+h = pcolor(X,Y,abs(utarg));
+%h.FaceColor = 'interp';
+set(h,'EdgeColor','None'); hold on;
 axis off
 xlim([-4, max(X(:))])
 ylim([-4, max(Y(:))])
 caxis([0,3])
-
-
-%abs(utot-( -0.003566175236184 + 0.001269459882790i))/abs( -0.003566175236184 + 0.001269459882790i)
-
-
