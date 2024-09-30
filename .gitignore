@@ -2,4 +2,5 @@
 *.png
 *.pdf
 
-examples/Misc/
+!flexural_wave_manuscript_arXiv/
+miscellaneous/
