@@ -1,11 +1,9 @@
-clear 
-addpath(genpath(pwd)) 
-
-maxchunklens = [ 2.7 2.5  1.8  1.2  0.8 0.75 0.7 ]; 
-npts = maxchunklens*0;
-free_errors = maxchunklens*0;
-clamped_errors = maxchunklens*0;
-supported_errors = maxchunklens*0;
+% maxchunklens = [ 2.7 2.5  1.8  1.2  0.8 0.75 0.7 ]; 
+nchs = 2:1:16;
+npts = nchs*0;
+free_errors = nchs*0;
+clamped_errors = nchs*0;
+supported_errors = nchs*0;
 
 zk = 8;
 nu = 1/3;
@@ -16,15 +14,15 @@ thetas = 0:pi/6:2*pi-pi/6;
 [targets, ~, ~] = droplet(thetas);
 targets = targets*1.5;
 %targets = [3*cos(thetas); 1.5*sin(thetas)];
-centre = [0.8 ; 0.5];
+centre = [1.35;0]; %[0.8 ; 0.5];
 
 for i = 1:numel(npts)
 
     
-    length = maxchunklens(i);
-    cparams.maxchunklen = length;       % setting a chunk length helps when the
-                                        % frequency is known'
-    chnkr = chunkerfunc(@(t) droplet(t), cparams);
+    % length = maxchunklens(i);
+    % cparams.maxchunklen = length;       % setting a chunk length helps when the
+    %                                     % frequency is known'
+    chnkr = chunkerfuncuni(@(t) droplet(t),nchs(i));
     chnkr = chnkr.sort();
     npts(i) = chnkr.npt;
 
@@ -331,36 +329,97 @@ end
 %%
 
 figure(2)
-tiledlayout(1,2)
+tiledlayout(1,2,'TileSpacing','compact')
 nexttile
-loglog(npts , clamped_errors, '.-', npts, free_errors,'.-', npts, supported_errors,'.-', MarkerSize=20)
-%loglog(npts, supported_errors,'.-', MarkerSize=20)
+loglog(npts , clamped_errors, '.-','LineWidth',1,'MarkerSize',12)
+hold on
+loglog(npts , free_errors, '.-','LineWidth',1,'MarkerSize',12)
+hold on
+loglog(npts , supported_errors, '.-','LineWidth',1,'MarkerSize',12)
 hold on 
-loglog(npts(2:end-2), 10^26.5.*npts(2:end-2).^(-16),'--k')
+loglog(npts(2:end-6), 10^24.*npts(2:end-6).^(-16),'--k','LineWidth',1)
 hold on
 %legend('supported plate','n^{-12}')
-legend('Clamped Plate','Free Plate','Supported Plate', 'n^{-16}')
+legend('Clamped plate','Free plate','Supported plate', 'n^{-16}')
+ylim([1E-14 1E-2])
+
+legendObj = legend; % Get the legend handle
+legendObj.LineWidth = 0.8; % Set legend box line width
+
 xlabel('N')
 ylabel('Relative error')
 title('Analytic solution test')
+axis square
+
+ax = gca;  % Get the current axis
+
+set(ax, 'FontSize',12)
+fontname(gcf, 'Helvetica')
+
+
+ax.XAxis.LineWidth = 0.8;  % Set the X-axis tick mark width
+ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 
 nexttile
-length = maxchunklens(1);
-cparams.maxchunklen = length;       % setting a chunk length helps when the
+cparams.maxchunklen = 0.8;       % setting a chunk length helps when the
                                     % frequency is known'
 chnkr = chunkerfunc(@(t) droplet(t), cparams);
 chnkr = chnkr.sort();
 
-plot(chnkr, '-xk')
+plot(chnkr, '-k','LineWidth',1)
 hold on 
-scatter(targets(1,:),targets(2,:),36,'filled')
+quiver(chnkr.r(1,:),chnkr.r(2,:),0.1*chnkr.n(1,:),0.1*chnkr.n(2,:),'.-k','AutoScale','off','LineWidth',0.7)
 hold on 
-scatter(centre(1),centre(2),36,'filled')
-xlim([-3.5 3.5])
-ylim([-2.5 2.5])
+quiver(chnkr.r(1,:),chnkr.r(2,:),-0.1*chnkr.n(1,:),-0.1*chnkr.n(2,:),'.-k','AutoScale','off','LineWidth',0.7)
+hold on 
+% plot(chnkr, 'xk','LineWidth',0.6,'MarkerSize',7)
+% hold on 
+plot(targets(1,:),targets(2,:),'k.','LineWidth',2,'MarkerSize',12);
+hold on
+plot(centre(1),centre(2),'.','Color',[32/255 217/255 0],'MarkerSize',12)
+hold on
+plot([1.1 2 2 1.1 1.1],[-0.1 -0.1 0.8 0.8 -0.1],'-k','LineWidth',1)
+hold on
+title('Geometry')
+
+xlim([-3.4 3.4])
+ylim([-3.3 3.3])
+axis square
+
+xs = chnkr.r(1,8:9,2);
+ys = chnkr.r(2,8:9,2);
+
+a = 2;
+b = 1;
+c = -0.4;
+
+t = atan2(a*ys - c*xs.^2/a, b*xs);
+t = (t(1) + t(2))/2;
+
+[bdrypt, bdrytang, ~] = droplet(t);
+
+bdrynorm = [bdrytang(2); -bdrytang(1)];
+bdrynorm = bdrynorm ./ norm(bdrynorm);
+
+rs = -7:0.1:-0.4;
+evalpts = bdrypt + bdry_normal*10.^(rs);
+plot(evalpts(1,:),evalpts(2,:),'k.','MarkerSize',4);
+
 
 % Integral of absolute value of density on boundary 
 % Maximum of density on boundary 
 
+ax = gca;  % Get the current axis
 
-rmpath(genpath(pwd)) 
+set(ax, 'FontSize',12)
+fontname(gcf, 'Helvetica')
+
+
+ax.XAxis.LineWidth = 0.8;  % Set the X-axis tick mark width
+ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
+
+set(gcf,'Position', [814   418   816   367])
+
+%%
+saveas(gcf,'convergence_figure.fig','fig')
+exportgraphics(gcf,'convergence_figure.pdf','ContentType','vector')
