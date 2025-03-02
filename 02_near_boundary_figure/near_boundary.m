@@ -34,6 +34,9 @@ opts2 = [];
 opts2.quad = 'native';
 opts2.sing = 'smooth';
 
+opts3 = [];
+opts3.sing = 'pv';
+
 kappa = signed_curvature(chnkr);
 kappa = kappa(:);
 
@@ -52,9 +55,6 @@ sysmat2bh = chunkermat(chnkr,fkern2bh, opts2);
 sysmat2 = chunkermat(chnkr,fkern2, opts);
 
 D = chunkermat(chnkr, double, opts);
-
-opts3 = [];
-opts3.sing = 'pv';
 
 H = chunkermat(chnkr, hilbert, opts3);     
 

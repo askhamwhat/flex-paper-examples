@@ -1,4 +1,7 @@
 % maxchunklens = [ 2.7 2.5  1.8  1.2  0.8 0.75 0.7 ]; 
+
+addpath(genpath(pwd))
+
 nchs = 2:1:16;
 npts = nchs*0;
 free_errors = nchs*0;
@@ -419,6 +422,9 @@ ax.XAxis.LineWidth = 0.8;  % Set the X-axis tick mark width
 ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 
 set(gcf,'Position', [814   418   816   367])
+
+
+return
 
 %%
 saveas(gcf,'convergence_figure.fig','fig')
