@@ -1,22 +1,24 @@
-clear
 addpath(genpath(pwd))
 
 % CREATING GEOMETRY 
 
-zk = 9;
-nus = [0.3; 0; -0.5];
+zk = 4;
+nus = [0.9; 0.99; 0.999];
 utots = {};
 
 for ii = 1:3
     
     nu = nus(ii);
     cparams = [];
-    cparams.maxchunklen = 8/zk;       % setting a chunk length helps when the
+    cparams.maxchunklen = 0.2/zk;       % setting a chunk length helps when the
                                         % frequency is known'
-    theta = 0;
+
+    chnkr.npt
+    
+    theta = pi/3;
     d = -[cos(theta) sin(theta)];
     
-    chnkr = chunkerfunc(@(t) droplet(t), cparams);
+    chnkr = chunkerfunc(@(t) starfish(t), cparams);
     % chnkr = chnkr.move([0;0],[0;0],pi,1);
     
     [val, grad, hess, third] = planewave1(zk, chnkr.r(:,:), d);
@@ -69,7 +71,7 @@ for ii = 1:3
     D = kron(eye(chnkr.npt), D);
     
     lhs =  D + sysmat;
-    
+    % cond(lhs)
     
     nx = chnkr.n(1,:).'; 
     ny = chnkr.n(2,:).';
@@ -118,8 +120,8 @@ for ii = 1:3
     % targets = [xs; ys];
     % [~,na] = size(targets);
     
-    h = 0.02;
-    [Tx,Ty] = meshgrid(-4:h:4);
+    h = 0.05;
+    [Tx,Ty] = meshgrid(-3:h:3);
     targets = [Tx(:) Ty(:)].';
     
     in = chunkerinterior(chnkr, targets); 
@@ -201,14 +203,16 @@ return
 
 %% plotting real part of solution instead of absolute value
 
-minval = min([10*min(abs(utots{1}(:))) -max(abs(utots{2}(:))) 10*min(abs(utots{3}(:)))]);
-maxval = max([0*max(abs(utots{1}(:))) max(abs(utots{2}(:)))  0*max(abs(utots{3}(:)))]);
+minval = min([min(abs(utots{1}(:))) min(abs(utots{2}(:))) min(abs(utots{3}(:)))]);
+maxval = max([max(abs(utots{1}(:))) max(abs(utots{2}(:))) max(abs(utots{3}(:)))]);
 
+minval = -5;
+maxval = 5;
 
 figure(2)
 tiledlayout(1,3,"TileSpacing","compact")
 nexttile
-h = pcolor(Tx,Ty,real(uscats{1}));
+h = pcolor(Tx,Ty,real(utots{1}));
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
@@ -224,7 +228,7 @@ ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 set(ax, 'FontSize',12)
 
 nexttile
-h = pcolor(Tx,Ty,real(uscats{2}));
+h = pcolor(Tx,Ty,real(utots{2}));
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
@@ -240,7 +244,7 @@ ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 set(ax, 'FontSize',12)
 
 nexttile
-h = pcolor(Tx,Ty,real(uscats{3}));
+h = pcolor(Tx,Ty,real(utots{3}));
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on

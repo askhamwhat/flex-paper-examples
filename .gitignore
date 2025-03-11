@@ -2,4 +2,3 @@
 *.png
 *.pdf
 !flexural_wave_manuscript_arXiv/*.pdf
-miscellaneous/
