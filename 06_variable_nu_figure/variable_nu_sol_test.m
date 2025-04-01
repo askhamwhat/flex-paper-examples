@@ -2,10 +2,12 @@
 % CREATING GEOMETRY 
 
 zk = 12;
-nus = [0.3; 0; -1];
+nus = [0.3; 0; -0.3];
 utots = {};
 
-
+cparams = [];
+cparams.maxchunklen = 4/zk;       % setting a chunk length helps when the
+                                    % frequency is known'
 
 chnkr = chunkerfuncuni(@(t) cavity(t,10.5),64);
 %chnkr = chunkerfunc(@(t) ellipse(t,3,1), cparams);
@@ -20,16 +22,37 @@ quiver(chnkr)
 axis equal
 drawnow
 
+centre = [1.1; 0];
+
+[~, ~, hess, third, ~] = flex2d.hkdiffgreen(zk, centre, chnkr.r);
+
+nx = chnkr.n(1,:).'; 
+ny = chnkr.n(2,:).';
+
+dx = chnkr.d(1,:).';
+dy = chnkr.d(2,:).';
+
+ds = sqrt(dx.*dx+dy.*dy);
+taux = (dx./ds); % normalization
+tauy = (dy./ds);
+
+kappa = signed_curvature(chnkr);
+kappa = kappa(:);
+
+h = 0.05;
+[Tx,Ty] = meshgrid(-3:h:3);
+targets = [Tx(:) Ty(:)].';
+
+in = chunkerinterior(chnkr, targets); 
+out = ~in; 
+
+[na,~] = size(targets);
+utarg = zeros(na, 1);
+
 
 for ii = 1:3
     
     nu = nus(ii);
-
-    
-    theta = 0;
-    d = -[cos(theta) sin(theta)];
-    
-    [val, grad, hess, third] = planewave1(zk, chnkr.r(:,:), d);
     
     coefs = [nu; 0];
     opts = [];
@@ -42,8 +65,6 @@ for ii = 1:3
     opts3 = [];
     opts3.sing = 'pv';
     
-    kappa = signed_curvature(chnkr);
-    kappa = kappa(:);
     
     fkern1 =  @(s,t) flex2d.kern(zk, s, t, 'free plate first part', coefs);        % build the desired kernel
     fkern1bh =  @(s,t) flex2d.kern(zk, s, t, 'free plate first part bh', coefs);        % build the desired kernel
@@ -79,7 +100,7 @@ for ii = 1:3
     D = kron(eye(chnkr.npt), D);
     
     lhs =  D + sysmat;
-    cond(lhs)
+    % cond(lhs)
     
     nx = chnkr.n(1,:).'; 
     ny = chnkr.n(2,:).';
@@ -90,28 +111,24 @@ for ii = 1:3
     ds = sqrt(dx.*dx+dy.*dy);
     taux = (dx./ds);                                                                       % normalization
     tauy = (dy./ds);
-    
-    kappa = signed_curvature(chnkr);
-    kappa = kappa(:)';
-    
-    
-    
-    firstbc = (hess(:,1).*(nx.*nx) + hess(:,2).*(2*nx.*ny) + hess(:,3).*(ny.*ny)) + ...
-               coefs(1).*(hess(:,1).*(taux.*taux) + hess(:,2).*(2*taux.*tauy) + hess(:,3).*(tauy.*tauy));
-    
-    secondbc = (third(:,1).*(nx.*nx.*nx) + third(:,2).*(3*nx.*nx.*ny) +...
-           third(:,3).*(3*nx.*ny.*ny) + third(:,4).*(ny.*ny.*ny))  + ...
-            (2-coefs(1)).*(third(:,1).*(taux.*taux.*nx) + third(:,2).*(taux.*taux.*ny + 2*taux.*tauy.*nx) +...
-            third(:,3).*(2*taux.*tauy.*ny+ tauy.*tauy.*nx) +...
-            + third(:,4).*(tauy.*tauy.*ny)) + ...
-            (1-coefs(1)).*kappa'.*(hess(:,1).*taux.*taux + hess(:,2).*(2*taux.*tauy) + hess(:,3).*tauy.*tauy+...
-            -(hess(:,1).*nx.*nx + hess(:,2).*(2*nx.*ny) + hess(:,3).*ny.*ny));
-    
-    [nt, ~] = size(sysmat);
-    
-    rhs = zeros(nt, 1); 
-    rhs(1:2:end) = -firstbc ; 
-    rhs(2:2:end) = -secondbc ;
+
+    firstbc = 1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
+           coefs(1)/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy));
+
+
+    secondbc = 1./(2*zk^2).*(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+           third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny))+...
+            (2-coefs(1))/(2*zk^2).*(third(:, :, 1).*(taux.*taux.*nx) + third(:, :, 2).*(taux.*taux.*ny + 2*taux.*tauy.*nx) +...
+            third(:, :, 3).*(2*taux.*tauy.*ny+ tauy.*tauy.*nx) +...
+            + third(:, :, 4).*(tauy.*tauy.*ny))+...
+            (1-coefs(1)).*(kappa).*(1/(2*zk^2).*(hess(:, :, 1).*taux.*taux + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*tauy.*tauy)-...
+            (1/(2*zk^2).*(hess(:, :, 1).*nx.*nx + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*ny.*ny)));
+
+
+    rhs = zeros(2*chnkr.npt, 1); 
+    rhs(1:2:end) = firstbc ; 
+    rhs(2:2:end) = secondbc;
+   
     
     tic
     sol = lhs\rhs;
@@ -128,13 +145,6 @@ for ii = 1:3
     % targets = [xs; ys];
     % [~,na] = size(targets);
     
-    h = 0.025;
-    [Tx,Ty] = meshgrid(-3:h:3);
-    targets = [Tx(:) Ty(:)].';
-    
-    in = chunkerinterior(chnkr, targets); 
-    out = ~in; 
-    
     ikern1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate eval first', coefs);                              % build the kernel of evaluation          
     ikern2 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate eval second');
     ikern3 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free plate eval first hilbert',coefs);
@@ -142,23 +152,22 @@ for ii = 1:3
     coupled = chunkerkerneval(chnkr, ikern3, H*rho1, targets(:, out));
     
     start1 = tic;
-    Dsol = chunkerkerneval(chnkr, ikern1,rho1, targets(:, out)) + coupled +chunkerkerneval(chnkr, ikern2, rho2, targets(:,out));
+    utarg(out) = chunkerkerneval(chnkr, ikern1,rho1, targets(:, out)) + coupled +chunkerkerneval(chnkr, ikern2, rho2, targets(:,out));
     t2 = toc(start1);
     fprintf('%5.2e s : time for kernel eval (for plotting)\n',t2)
     
-    utot = 0*Tx(:);
-    uscat = 0*Tx(:);
-    
-    [uinc] = planewave1(zk, targets(:,out), d);
-    utot(out) = Dsol + uinc;
-    utot = reshape(utot,size(Tx));
-    utot(utot == 0) = NaN;
-    uscat(out) = Dsol;
-    uscat = reshape(uscat,size(Tx));
-    uscat(uscat == 0) = NaN;
+    true_sol = 0*utarg;
+    true_sol(out) = flex2d.hkdiffgreen(zk,centre,targets(:,out));        % Hankel part
 
-    utots{ii} = utot;
-    uscats{ii} = uscat;
+    true_sol = 1/(2*zk^2).*true_sol ;
+
+    uerr = utarg - true_sol;
+%    uerr = uerr ./  max(abs(true_sol));
+    uerr = uerr ./  (chnkr.wts(:).'*(abs(rho1) + abs(rho2)));
+    uerr = reshape(uerr,size(Tx));
+    uerr(uerr == 0) = NaN;
+    utots{ii} = abs(uerr);
+    usols{ii} = reshape(utarg,size(Tx));
 
 end
 
@@ -238,7 +247,6 @@ h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-% clim([minval maxval])
 plot(chnkr,'k-','LineWidth',2);
 title(['\nu = ',num2str(nus(2))])
 axis square
@@ -254,7 +262,6 @@ h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-% clim([minval maxval])
 plot(chnkr,'k-','LineWidth',2);
 title(['\nu = ',num2str(nus(3))])
 axis square
@@ -271,25 +278,19 @@ set(gcf,'Position',[541 592 927 317])
 
 % plotting real part of solution instead of absolute value
 
-minval = max([min(real(utots{1}(:))) min(real(utots{2}(:))) min(real(utots{3}(:)))]);
-maxval = min([max(real(utots{1}(:))) max(real(utots{2}(:))) max(real(utots{3}(:)))]);
 
 
 figure(3)
 tiledlayout(1,3,"TileSpacing","compact")
 nexttile
-h = pcolor(Tx,Ty,real(utots{1}));
+h = pcolor(Tx,Ty,real(usols{1}));
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-clim = max(abs(caxis));  % Find the maximum absolute limit
-caxis([-0.9*clim 0.9*clim]);     % Set symmetric limits
-colorbar;
-% clim([minval maxval])
 plot(chnkr,'k-','LineWidth',2);
 axis square 
-title(['\nu = ',num2str(nus(1)),' (ice)'])
+title(['\nu = ',num2str(nus(1))])
 
 ax = gca;  % Get the current axis
 ax.XAxis.LineWidth = 0.8;  % Set the X-axis tick mark width
@@ -297,17 +298,13 @@ ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 set(ax, 'FontSize',12)
 
 nexttile
-h = pcolor(Tx,Ty,real(utots{2}));
+h = pcolor(Tx,Ty,real(usols{2}));
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-clim = max(abs(caxis));  % Find the maximum absolute limit
-caxis([-0.9*clim 0.9*clim]);     % Set symmetric limits
-colorbar;
-% clim([minval maxval])
 plot(chnkr,'k-','LineWidth',2);
-title(['\nu = ',num2str(nus(2)),' (cork)'])
+title(['\nu = ',num2str(nus(2))])
 axis square
 
 ax = gca;  % Get the current axis
@@ -316,16 +313,13 @@ ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 set(ax, 'FontSize',12)
 
 nexttile
-h = pcolor(Tx,Ty,real(utots{3}));
+h = pcolor(Tx,Ty,real(usols{3}));
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-clim = max(abs(caxis));  % Find the maximum absolute limit
-caxis([-0.7*clim 0.7*clim]);     % Set symmetric limits
-colorbar;
 plot(chnkr,'k-','LineWidth',2);
-title(['\nu = ',num2str(nus(3)), ' (auxetic)'])
+title(['\nu = ',num2str(nus(3))])
 axis square
 
 ax = gca;  % Get the current axis
@@ -337,8 +331,4 @@ fontname(gcf, 'Helvetica')
 
 set(gcf,'Position',[541 592 927 317])
 
-return 
-%%
-
-saveas(figure(3),'variable_nu.fig','fig')
-exportgraphics(gcf,'variable_nu.pdf','ContentType','vector')
+return

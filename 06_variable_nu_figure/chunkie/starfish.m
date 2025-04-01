@@ -52,7 +52,6 @@ if nargin > 5 && ~isempty(varargin{5})
     scale = varargin{5};
 end
 
-
 fvals = zeros(length(t),6);
 ct = cos(t);
 st = sin(t);

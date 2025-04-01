@@ -128,7 +128,7 @@ for ii = 1:3
     % targets = [xs; ys];
     % [~,na] = size(targets);
     
-    h = 0.025;
+    h = 0.1;
     [Tx,Ty] = meshgrid(-3:h:3);
     targets = [Tx(:) Ty(:)].';
     
@@ -283,9 +283,6 @@ h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-clim = max(abs(caxis));  % Find the maximum absolute limit
-caxis([-0.9*clim 0.9*clim]);     % Set symmetric limits
-colorbar;
 % clim([minval maxval])
 plot(chnkr,'k-','LineWidth',2);
 axis square 
@@ -302,9 +299,6 @@ h.EdgeColor = 'none';
 h.FaceColor = 'interp';
 hold on
 colorbar
-clim = max(abs(caxis));  % Find the maximum absolute limit
-caxis([-0.9*clim 0.9*clim]);     % Set symmetric limits
-colorbar;
 % clim([minval maxval])
 plot(chnkr,'k-','LineWidth',2);
 title(['\nu = ',num2str(nus(2)),' (cork)'])
@@ -322,7 +316,7 @@ h.FaceColor = 'interp';
 hold on
 colorbar
 clim = max(abs(caxis));  % Find the maximum absolute limit
-caxis([-0.7*clim 0.7*clim]);     % Set symmetric limits
+caxis([-clim clim]);     % Set symmetric limits
 colorbar;
 plot(chnkr,'k-','LineWidth',2);
 title(['\nu = ',num2str(nus(3)), ' (auxetic)'])
