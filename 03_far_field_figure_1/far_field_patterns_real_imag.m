@@ -162,7 +162,7 @@ rho1 = sol(1:2:end);                                    % first density
 rho2 = sol(2:2:end);        % second density
 
 
-R = 1000;
+R = 2000;
 thetas = -pi:0.05:pi;
 xs = R*cos(thetas);
 ys = R*sin(thetas);
@@ -188,13 +188,10 @@ hold on
 
 xlabel('\theta')
 
-title('Magnitude')
+title('\Re(f(\theta))')
 
 nexttile(3)
-phase = atan2(imag(ufar),real(ufar));
-phase(logical((phase > 0).*(thetas < -pi/3)')) = phase(logical((phase > 0).*(thetas < -pi/3)')) - 2*pi;
-phase(logical((phase > 0).*(thetas > pi/3)')) = phase(logical((phase > 0).*(thetas > pi/3)')) - 2*pi;
-plot(thetas, phase, 'Color', blue,'LineWidth',2)
+plot(thetas, imag(ufar), 'Color', blue,'LineWidth',2)
 %plot(thetas, real(ufar)./real(ufar))
 xlim([-pi pi])
 set(gca, 'XTick', -pi:pi/2:pi)
@@ -210,7 +207,7 @@ set(ax, 'FontSize',12)
 
 xlabel('\theta')
 
-title('Phase')
+title('\Im(f(\theta))')
 
 
 % FREE PLATE
@@ -352,10 +349,7 @@ ax.YAxis.LineWidth = 0.8;  % Set the Y-axis tick mark width
 set(ax, 'FontSize',12)
 
 nexttile(3)
-phase = atan2(imag(ufar),real(ufar));
-phase(logical((phase > 0).*(thetas < -7*pi/12)')) = phase(logical((phase > 0).*(thetas < -7*pi/12)')) - 2*pi;
-phase(logical((phase > 0).*(thetas > 7*pi/12)')) = phase(logical((phase > 0).*(thetas > 7*pi/12)')) - 2*pi;
-plot(thetas, phase, 'Color', red,'LineWidth',2)
+plot(thetas, imag(ufar), 'Color', red,'LineWidth',2)
 %plot(thetas, real(ufar)./real(ufar))
 axis square
 
@@ -440,7 +434,7 @@ plot(thetas, real(ufar), 'Color', orange,'LineWidth',2)
 hold on 
 
 nexttile(3)
-plot(thetas, atan2(imag(ufar),real(ufar)), 'Color', orange,'LineWidth',2)
+plot(thetas, imag(ufar), 'Color', orange,'LineWidth',2)
 %plot(thetas, real(ufar)./real(ufar))
 hold on 
 
@@ -487,7 +481,7 @@ nexttile(2)
 plot(thetas, real(ufar),  '--', 'Color', blue,'LineWidth',2)
 
 nexttile(3)
-plot(thetas, atan2(imag(ufar),real(ufar)), '--', 'Color', blue,'LineWidth',2)
+plot(thetas, imag(ufar), '--', 'Color', blue,'LineWidth',2)
 %plot(thetas, real(ufar) ./ real(ufar), '--')
 
 % HELMHOLTZ NEUMANN
@@ -514,11 +508,11 @@ ufar = chunkerkerneval(chnkr,fkern2,sol,targets);
 ufar = sqrt(R)*ufar*exp(-1i*zk*R);
 
 nexttile(2)
-plot(thetas, abs(ufar),  '--','Color', red,'LineWidth',2)
+plot(thetas, real(ufar),  '--','Color', red,'LineWidth',2)
 
 nexttile(3)
-plot(thetas, atan2(imag(ufar),real(ufar)), '--', 'Color', red,'LineWidth',2)
-% plot(thetas, real(ufar) ./ abs(ufar), '--')
+plot(thetas, imag(ufar), '--', 'Color', red,'LineWidth',2)
+% plot(thetas, real(ufar) ./ real(ufar), '--')
 
 
 
@@ -532,6 +526,9 @@ fontname(gcf, 'Helvetica')
 
 set(gcf,'Position',[541 592 927 317])
 
+
+return 
+
 %%
 
 saveas(figure(1),'far_field_figure_1.fig','fig')
@@ -539,9 +536,9 @@ exportgraphics(gcf,'far_field_figure_1.pdf','ContentType','vector')
 
 %
 % 
-% maxin = max(abs(uin(:)));
-% maxsc = max(abs(uin(:)));
-% maxtot = max(abs(uin(:)));
+% maxin = max(real(uin(:)));
+% maxsc = max(real(uin(:)));
+% maxtot = max(real(uin(:)));
 % 
 % maxu = max(max(maxin,maxsc),maxtot);
 % 
